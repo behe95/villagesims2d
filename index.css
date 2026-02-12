@@ -1,0 +1,50 @@
+*, body{
+margin: 0px;
+padding: 0px;
+box-sizing: border-box;
+}
+
+.main{
+
+	padding: 10px 20px;
+	margin: 5px 10px;
+	display: flex;
+	justify-content: center;
+	align-items: flex-start;
+	height: 100%;	
+	background-color: #c9efff;
+}
+
+.container {
+	width: fit-content;
+/*background-color: #c9efff;
+height: 100%;
+width: 100%;
+margin: 10px 0px;
+padding: 25px 15px;*/
+}
+
+
+div.page-title h1 {
+text-align: center;
+margin: 30px 0px;
+
+}
+
+.row {
+ display: grid;
+ grid-template-columns: 200px 1fr;
+ gap: 200px;
+ margin: 10px 0px;
+}
+
+
+.row .col:first-child {
+font-weight: bold;
+}
+.row .col p {
+font-size: 20px;
+}
+
+
+
