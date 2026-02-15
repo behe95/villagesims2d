@@ -1,9 +1,28 @@
+const isDevMode = true;
+
+
+
+const canvas = document.getElementById("_canvas");
+const ctx = canvas.getContext("2d");
+
+
+// canvas dimensions
+const cnvs_width = canvas.width;
+const cnvs_height = canvas.height;
+
 
 
 /** Codes below are to test how Grid Spatial Data Structure works */
-const NUM_CELLS_X = 20;
-const NUM_CELLS_Y = 10
-const CELL_SIZE = 40;
+
+
+const CELL_SIZE = 20;
+
+const NUM_CELLS_X = cnvs_width / CELL_SIZE; //20;
+const NUM_CELLS_Y = cnvs_height / CELL_SIZE;// 10
+
+
+
+
 
 /**
  *
@@ -12,14 +31,14 @@ const CELL_SIZE = 40;
  * YY -> 10 * 30 = 400
  */
 
-
+let  obs = [];
 class Grid {
 
 	constructor(){
 
-		this.cells = [];
+		this.cells = new Array(NUM_CELLS_Y);
 		for(let y = 0;y < NUM_CELLS_Y; y++){
-			this.cells[y] = [];
+			this.cells[y] = new Array(NUM_CELLS_X);
 			for(let x = 0; x < NUM_CELLS_X;x++){
 				this.cells[y][x] = null;
 			}
@@ -27,14 +46,138 @@ class Grid {
 	}
 
 
-	add(obstacle){
-		const gridPosX = Math.floor(obstacle.x / CELL_SIZE); 
-		const gridPosY = Math.floor(obstacle.y / CELL_SIZE);
-		this.cells[gridPosX][gridPosY] = obstacle;	
+	// given canvas cooridnates
+	convertToGridCOORD(xPos,yPos){
+		
+		let gridPosX = Math.floor(xPos / CELL_SIZE); 
+		let gridPosY = Math.floor(yPos / CELL_SIZE);
+
+		if(gridPosX >= NUM_CELLS_X) gridPosX = NUM_CELLS_X - 1;
+		if(gridPosY >= NUM_CELLS_Y) gridPosY = NUM_CELLS_Y - 1;
+
+
+	
+		return [gridPosX, gridPosY];
 	}
 
-}
 
+	add(obstacle){
+
+		const xPos = obstacle.x;
+		const yPos = obstacle.y + obstacle.getHeight()
+
+	/*	let gridPosX = Math.floor(xPos / CELL_SIZE); 
+		let gridPosY = Math.floor(yPos / CELL_SIZE);
+
+		if(gridPosX >= NUM_CELLS_X) gridPosX = NUM_CELLS_X - 1;
+		if(gridPosY >= NUM_CELLS_Y) gridPosY = NUM_CELLS_Y - 1;
+
+*/
+
+		const [gridPosX, gridPosY] = this.convertToGridCOORD(xPos, yPos);
+
+		let currObstacle = this.cells[gridPosY][gridPosX];
+		// no obstacle in current grid cell
+		if(!currObstacle){
+
+			this.cells[gridPosY][gridPosX] = obstacle;
+
+
+
+		}
+		// current grid has obstacle already
+		else {
+			// obstacle y position is after the existing grid obstacle
+			if(obstacle.getHeight() + obstacle.y > currObstacle.getHeight() + currObstacle.y){
+
+				obstacle.nextObstacle = currObstacle;
+				currObstacle.prevObstacle = obstacle;
+				this.cells[gridPosY][gridPosX] = obstacle;
+			}
+			// obstacle y position is before the existing grid obstacle
+			else {
+
+				// existing obstacle don't have next obstacle
+				if(currObstacle.nextObstacle == null){
+					currObstacle.nextObstacle = obstacle;
+					obstacle.prevObstacle = currObstacle;
+
+				}
+				// existing obstacle has next obstacle(s)
+				else{
+
+
+				
+			
+
+					let tmpCurr = currObstacle;
+					let tmpPrev = null;
+	
+					while(tmpCurr && 
+						(
+							(tmpCurr.getHeight() + tmpCurr.y > obstacle.getHeight() + obstacle.y)	// obstacle base is inside existing obstacle's base
+						)){
+						tmpPrev = tmpCurr;
+
+						tmpCurr = tmpCurr.nextObstacle;
+
+					}
+					console.log(this.cells)
+
+					if (tmpPrev) tmpPrev.nextObstacle = obstacle;
+					obstacle.prevObstacle = tmpPrev;
+					obstacle.nextObstacle = tmpCurr;
+					if (tmpCurr) tmpCurr.prevObstacle = obstacle;
+
+				}
+
+			}
+
+		}
+
+		
+
+		// SORT obstacles
+		//
+		obs.sort((a,b) => {
+			/*
+
+			let aGridPosX = Math.floor(a.x / NUM_CELLS_X);
+			let aGridPosY = Math.floor((a.y + a.getHeight()) / NUM_CELLS_Y);
+
+
+
+			let bGridPosX = Math.floor(b.x / NUM_CELLS_X);
+			let bGridPosY = Math.floor((b.y + b.getHeight()) / NUM_CELLS_Y);
+
+			*/
+
+			
+			
+			const [aGridPosX, aGridPosY] = this.convertToGridCOORD(a.x, a.y);
+			const [bGridPosX, bGridPosY] = this.convertToGridCOORD(b.x, b.y);
+
+			console.log(`a(${aGridPosX},${aGridPosY})`);
+
+			console.log(`b(${bGridPosX},${bGridPosY})`);
+
+
+			
+			console.log((a.getHeight() + a.y) - (b.getHeight()+b.y));
+			
+			return (a.getHeight() + a.y) - (b.getHeight()+b.y);
+
+			
+		})
+
+		console.log(obs)
+	}
+
+
+
+
+
+}
 
 
 
@@ -70,21 +213,15 @@ class Grid {
  * End of experimental code
  */
 
-const canvas = document.getElementById("_canvas");
-const ctx = canvas.getContext("2d");
-
-
-// canvas dimensions
-const cnvs_width = canvas.width;
-const cnvs_height = canvas.height;
-
-
 
 let btnPressed = false;
 const ARROW_DWN_KY = 40;
 const ARROW_UP_KY = 38;
 const ARROW_LFT_KY = 37;
 const ARROW_RT_KY = 39;
+
+const C_KY = 67;
+
 
 let cur_btn_ky = -1;
 
@@ -95,12 +232,13 @@ window.addEventListener("keydown", (e) => {
 		cur_btn_ky = e.keyCode;
 	/*	if(btnPressed){
 		cur_btn_key = e.keyCode;
-		console.log(e.keyCode);
+		tonsole.log(e.keyCode);
 
 	} else{
 		btnPressed = true;
 
 	}*/
+
 
 });
 
@@ -118,12 +256,13 @@ addEventListener("keyup", (e) => {
 const grid = new Grid()
 
 class Obstacle{
-	constructor(cnvs_ctx, x, y){
+	constructor(cnvs_ctx, x, y, imgSrc){
 		this.cnvs_ctx = cnvs_ctx;
 		this.x = x;
 		this.y = y;
 		
 		this.img = new Image();
+		this.img.src = imgSrc;
 
 		this.grid = grid;
 
@@ -134,13 +273,17 @@ class Obstacle{
 
 
 		// testing purpose
-		this.box = new Box(cnvs_ctx, x, y, 0, 0,"",false,"red");
+		if(isDevMode){
+			this.box = new Box(cnvs_ctx, x, y, 0, 0,"",false,"red");
+		}
 		
 	}
 
 
 	setImg(src){
 		this.img.src = src;
+
+	//	this.grid.add(this);
 
 	}
 
@@ -158,11 +301,12 @@ class Obstacle{
 		
 
 		// testing purpose
-		this.box.setPosition(this.x, this.y);
-		this.box.setStrokeSize(3);
-		this.box.setDimension(this.img.width, this.img.height);
-		this.box.draw();
-		
+		if(isDevMode){
+			this.box.setPosition(this.x, this.y);
+			this.box.setStrokeSize(3);
+			this.box.setDimension(this.img.width, this.img.height);
+			this.box.draw();
+		}		
 
 	}
 
@@ -172,13 +316,13 @@ class Obstacle{
 
 class Tree extends Obstacle{
 	constructor(cnvs_ctx, x, y){
-		super(cnvs_ctx, x, y);
+		super(cnvs_ctx, x, y, "./res/tree/tree.png");
 		this.cnvs_ctx = cnvs_ctx;
 		this.x = x;
 		this.y = y;
 
-		this.src = "./res/tree/tree.png";
-		super.setImg(this.src);
+		//this.src = "./res/tree/tree.png";
+		//super.setImg(this.src);
 
 	}
 
@@ -187,10 +331,10 @@ class Tree extends Obstacle{
 
 class Villager extends Obstacle{
 	constructor(cnvs_ctx, x, y) {
-		super(cnvs_ctx, x, y);
+		super(cnvs_ctx, x, y, "./res/villager/dw2.png");
 
-		this.src = "./res/villager/dw2.png";
-		super.setImg(this.src);
+		//this.src = "./res/villager/dw2.png";
+		//super.setImg(this.src);
 		this.count = 1;
 		this.currPos = "dw"
 		this.changeRate = 1;
@@ -223,9 +367,109 @@ class Villager extends Obstacle{
 
 		this.count += this.changeRate;
 
-
 		this.src = this.buildSpritePath(this.currPos, this.count);
 		super.setImg(this.src);
+
+
+
+		let prevGridPosX = Math.floor((this.x - this.dx) / CELL_SIZE);
+		let prevGridPosY = Math.floor(((this.y - this.dy)+super.getHeight()) / CELL_SIZE);
+
+		let currGridPosX = Math.floor(this.x / CELL_SIZE);
+		let currGridPosY = Math.floor((this.y + super.getHeight()) / CELL_SIZE);
+		
+		if(currGridPosX >= NUM_CELLS_X) currGridPosX = NUM_CELLS_X - 1;	
+
+		if(currGridPosY >= NUM_CELLS_Y) currGridPosY = NUM_CELLS_Y - 1;
+
+
+		if(prevGridPosX >= NUM_CELLS_X) prevGridPosX = NUM_CELLS_X-1;
+		if(prevGridPosY >= NUM_CELLS_Y) prevGridPosY = NUM_CELLS_Y-1;
+		//console.log(`prev(${prevGridPosX}, ${prevGridPosY})`)
+
+		//console.log(`curr(${currGridPosX}, ${currGridPosY})`)
+
+		// position change
+		// Remove from the previous grid cell
+		if(prevGridPosX != currGridPosX || currGridPosY != prevGridPosY){
+
+			// previous grid cell has only one obstacle
+			if(this.prevObstacle == null && this.nextObstacle == null)
+			{
+				this.grid.cells[prevGridPosY][prevGridPosX] = null;
+			}
+			// previous grid cell has more than one obstacle
+			// obstacle to be removed has next obstacle(s)
+			else if(this.prevObstacle == null && this.nextObstacle){
+				this.nextObstacle.prevObstacle = null;
+				this.grid.cells[prevGridPosY][prevGridPosX] = this.nextObstacle;
+					
+
+				this.nextObstacle = null;
+
+			}
+			// obstacle to be removed has previous obstacle(s) and next obstacle(s)
+			else if(this.prevObstacle != null && this.nextObstacle != null){
+				let tmpCurr = this.grid.cells[prevGridPosY][prevGridPosX];
+				let tmpPrev = null;
+				while(tmpCurr){
+					tmpPrev = tmpCurr;
+
+					if(this === tmpCurr) {
+						break;
+					}
+					tmpCurr = tmpCurr.nextObstacle;
+				}
+
+				let prev = this.prevObstacle;
+				let next = this.nextObstacle;
+
+				prev.nextObstacle = next;
+				next.prevObstacle = prev;
+				this.prevObstacle = null;
+				this.nextObstacle = null;
+
+			} 
+			// obstacle to be removed has previous obstacle(s) but no next obstacle(s)
+			else {
+				let tmpCurr = this.grid.cells[prevGridPosY][prevGridPosX];
+				let tmpPrev = null;
+				while(tmpCurr){
+					tmpPrev = tmpCurr;
+					if(this === tmpCurr){
+						break;
+					}
+					tmpCurr = tmpCurr.nextObsacle;
+
+				}
+				let prev = this.prevObstacle;
+				prev.nextObstacle = null;
+				this.prevObstacle = null;
+
+			}
+			/*
+			if(this.prevObstcle != null){
+				this.prevObstacle.nextObstacle = this.nextObstacle;
+			}else{
+				this.grid.cells[prevGridPosY][prevGridPosX] = this.nextObstacle;
+
+			}
+
+
+			if(this.nextObstacle != null){
+				
+				this.nextObstacle.prevObstacle = this.prevObstacle;
+
+			}
+			*/
+
+
+
+
+
+
+			this.grid.add(this);
+		}
 
 	}
 
@@ -389,7 +633,6 @@ class Box{
 
 
 function init() {
-	console.log(grid);
 	window.requestAnimationFrame(draw);
 
 }
@@ -397,12 +640,12 @@ let box = new Box(ctx, 0, 100, 100, 100, "red");
 let villager = new Villager(ctx, 10, 10);
 
 let ground = new Box(ctx, 0, 0, cnvs_width, cnvs_height, "lightgreen");
-
+/*
 // generate tree randomly -- TODO LATER
 let trees = [
 	new Tree(ctx, 100, 0)
 	,new Tree(ctx, 100,5)
-	,new Tree(ctx, 56, 24)
+	//,new Tree(ctx, 56, 24)
 
 	,new Tree(ctx, 156,224)
 	,new Tree(ctx, 356, 224)
@@ -412,6 +655,8 @@ let trees = [
 
 
 ]
+*/
+let trees = [new Tree(ctx, 140,10)];
 
 
 /*
@@ -426,15 +671,16 @@ const gridBorders = new Array(NUM_CELLS_X*NUM_CELLS_Y);
 let counter = 0;
 
 for(let y = 0; y < NUM_CELLS_Y;y++){
-for(let x =0; x<NUM_CELLS_X;x++){
-	gridBorders[counter] = new Box(ctx, x*CELL_SIZE,y*CELL_SIZE,CELL_SIZE, CELL_SIZE,"",false,"black");
-	counter++;
+	for(let x =0; x<NUM_CELLS_X;x++){
+		gridBorders[counter] = new Box(ctx, x*CELL_SIZE,y*CELL_SIZE,CELL_SIZE, CELL_SIZE,"",false,"black");
+		counter++;
+	}
 }
-}
 
 
-let obstacles = [...trees, villager];
+//let obstacles = [...trees, villager];
 
+obs = [...trees, villager];
 console.log(grid);
 
 
@@ -442,6 +688,7 @@ console.log(grid);
 // TODO	-- redraw villager when villager is behind an obstacle
 
 let lastUpdate = 0;
+//let isInit = true;
 
 function draw(time){
 	// clear screen
@@ -453,13 +700,11 @@ function draw(time){
 //	box.draw();
 	ground.draw();
 
-	
 
-	obstacles.forEach(o => o.draw());
-
-
-	gridBorders.forEach(gb => gb.draw());
-
+		obs.forEach(o => o.draw());
+	if(isDevMode){
+		gridBorders.forEach(gb => gb.draw());
+	}
 	//box.update();
 	
 	if(time - lastUpdate > 20) {
@@ -487,6 +732,10 @@ function draw(time){
 			
 			
 			villager.moveRight();
+		} else if(cur_btn_ky == C_KY && isDevMode){
+
+			console.log(grid);
+
 		}
 		lastUpdate = time;
 
