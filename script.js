@@ -324,8 +324,15 @@ class Obstacle{
 		this.y = y;
 		
 		this.img = img;
+		
+		if(this.img.complete){
+			this.grid = grid;
+		}else{
+			this.img.onload = () => {
+				this.grid.add(this);
+			}
 
-		this.grid = grid;
+		}
 
 	
 
