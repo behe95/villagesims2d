@@ -544,6 +544,7 @@ class Villager extends Obstacle{
 
 
 	moveDown(){
+		this.dx = 0;
 		this.dy = 1 * this.walkingSpeed;
 		this.y += this.dy;
 
@@ -559,6 +560,7 @@ class Villager extends Obstacle{
 	}
 
 	moveUp(){
+		this.dx = 0;
 		this.dy = -1 * this.walkingSpeed;
 		this.y += this.dy;
 
@@ -572,6 +574,7 @@ class Villager extends Obstacle{
 	}
 
 	moveLeft(){
+		this.dy = 0;
 		this.dx = -1 * this.walkingSpeed;
 		this.x += this.dx;
 
@@ -587,7 +590,8 @@ class Villager extends Obstacle{
 	moveRight(){
 
 		this.isObstacle();
-
+		
+		this.dy = 0;
 		this.dx = 1 * this.walkingSpeed;
 		this.x += this.dx;
 		/*
