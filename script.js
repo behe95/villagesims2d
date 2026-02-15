@@ -129,7 +129,6 @@ class Grid {
 		const xPos = obstacle.x;
 		const yPos = obstacle.y + obstacle.getHeight();
 		
-		console.log("a", obstacle)
 		
 
 	/*	let gridPosX = Math.floor(xPos / CELL_SIZE); 
@@ -188,7 +187,6 @@ class Grid {
 						tmpCurr = tmpCurr.nextObstacle;
 
 					}
-					console.log(this.cells)
 
 					if (tmpPrev) tmpPrev.nextObstacle = obstacle;
 					obstacle.prevObstacle = tmpPrev;
@@ -324,9 +322,18 @@ class Obstacle{
 		this.y = y;
 		
 		this.img = img;
+
+
+		this.grid = grid;
+	
+
+		this.prevObstacle = null;
+		this.nextObstacle = null;
+
+
 		
 		if(this.img.complete){
-			this.grid = grid;
+			this.grid.add(this);
 		}else{
 			this.img.onload = () => {
 				this.grid.add(this);
@@ -334,13 +341,7 @@ class Obstacle{
 
 		}
 
-	
-
-		this.prevObstacle = null;
-		this.nextObstacle = null;
-
-
-		this.grid.add(this);
+		//this.grid.add(this);
 		// testing purpose
 		if(isDevMode){
 			this.box = new Box(cnvs_ctx, x, y, 0, 0,"",false,"red");
@@ -532,13 +533,11 @@ class Villager extends Obstacle{
 
 
 
-			console.log("A", this.img.height);
 
 			//this.img.onload = () => {
 				this.grid.add(this);
 			//}
 
-			console.log(this.grid);
 		}
 
 	}
@@ -617,7 +616,7 @@ class Villager extends Obstacle{
 		let tmp = this.grid.cells[y][x]
 
 
-
+		console.log(tmp);
 		return collided;
 	}
 
@@ -722,7 +721,6 @@ class Box{
 
 const images = [assets.tree, ...Object.values(assets.villager)]
 
-console.log(images)
 
 loadGame(images, () => {
 	
@@ -763,7 +761,6 @@ for(let y = 0; y < NUM_CELLS_Y;y++){
 }
 
 
-console.log(grid);
 
 
 
