@@ -40,6 +40,18 @@ const assets = {
 		,rw2: new Image()
 		,rw3: new Image()
 	}
+	,cow: {
+		cowstand1: new Image()
+		,cowstand2: new Image()
+		,cowstand3: new Image()
+		,cowstand4: new Image()
+		,cowstand5: new Image()
+
+	}
+	,resource: {
+		gold1: new Image()
+		,stone1: new Image()
+	}
 
 }
 
@@ -63,6 +75,16 @@ assets.villager.rw2.src = "./res/villager/rw2.png";
 assets.villager.rw3.src = "./res/villager/rw3.png";
 
 
+assets.cow.cowstand1.src = "./res/cow/cowstand1.png";
+assets.cow.cowstand2.src = "./res/cow/cowstand2.png";
+assets.cow.cowstand3.src = "./res/cow/cowstand3.png";
+assets.cow.cowstand4.src = "./res/cow/cowstand4.png";
+assets.cow.cowstand5.src = "./res/cow/cowstand5.png";
+
+
+
+assets.resource.gold1.src = "./res/gold/gold1.png";
+assets.resource.stone1.src = "./res/stone/stone1.png";
 
 // constant variables to identify the axis
 const HORIZONTAL_R = 0;
@@ -277,6 +299,12 @@ class Obstacle{
 	}
 
 	draw(){
+		/*
+		this.cnvs_ctx.shadowColor = "rgba(0, 0, 0, 0.7)";
+		this.cnvs_ctx.shadowBlur = 10;
+		this.cnvs_ctx.shadowOffsetX = 5;
+		this.cnvs_ctx.shadowOffsetY = 5;
+		*/
 		this.cnvs_ctx.drawImage(this.img, this.x, this.y);
 		
 
@@ -374,27 +402,12 @@ class Obstacle{
 
 
 
-class Tree extends Obstacle{
-	constructor(cnvs_ctx, x, y){
-		super(cnvs_ctx, x, y, assets.tree);
+class Movable extends Obstacle {
 
-		this.cnvs_ctx = cnvs_ctx;
-		this.x = x;
-		this.y = y;
-		//this.src = "./res/tree/tree.png";
-		//super.setImg(this.src);
+	constructor(cnvs_ctx, x, y, sprite){
+		super(cnvs_ctx, x, y, sprite);
 
-	}
-
-
-}
-
-class Villager extends Obstacle{
-	constructor(cnvs_ctx, x, y) {
-		super(cnvs_ctx, x, y, assets.villager.dw2);
-
-		//this.src = "./res/villager/dw2.png";
-		//super.setImg(this.src);
+	
 		this.count = 1;
 		this.currPos = "dw"
 		this.changeRate = 1;
@@ -411,12 +424,11 @@ class Villager extends Obstacle{
 
 		this.direction = NO_DIRECTION;
 
+
 	}
 
-	buildSpritePath(direction, n){
-		return `./res/villager/${direction}${n}.png`
-	
-	}
+
+
 
 
 
@@ -617,15 +629,26 @@ class Villager extends Obstacle{
 
 		console.log(nearByObst);
 
-		const toleranceY = 5;
-		const toleranceX = 5;
+		let toleranceY = 5;
+		let toleranceX = 0;
+		const TOLERANCE_AMP = 5;
 
 		
 		for(let obst of nearByObst){
 
+			toleranceY = 5;
 
+			if (this.getWidth() > obst.getWidth()){
+				toleranceX = TOLERANCE_AMP* Math.abs(Math.ceil((this.getWidth() - obst.getWidth()) / 2))
+				
+
+			}
+			
+			
+
+			// when object get in to the collided object's inner box
 			if(
-				(this.x + this.getWidth() >= obst.x && this.x + this.getWidth() <= obst.x + obst.getWidth())
+				(this.x + this.getWidth() >= obst.x-toleranceX && this.x + this.getWidth() <= obst.x + obst.getWidth()+toleranceX)
 				&& (this.y+this.getHeight() >= obst.y + obst.getHeight()-toleranceY && this.y+this.getHeight() <= obst.y + obst.getHeight()+toleranceY)
 				&& this.direction == HORIZONTAL_L
 			){
@@ -633,13 +656,15 @@ class Villager extends Obstacle{
 				break;
 			}
 			else if(
-				(this.x >= obst.x && this.x <= obst.x + obst.getWidth())
+				(this.x >= obst.x-toleranceX && this.x <= obst.x + obst.getWidth()+toleranceX)
 				&& (this.y+this.getHeight() >= obst.y+obst.getHeight()-toleranceY && this.y+this.getHeight() <= obst.y+obst.getHeight()+toleranceY)
 				&& this.direction == HORIZONTAL_R
 			){
 				collided = false;
 				break;
 			}
+
+			// when object is not in collided object's inner box yet
 
 
 			if(
@@ -666,9 +691,11 @@ class Villager extends Obstacle{
 			}
 			else if(
 				this.direction == VERTICAL_U &&
-				(this.x >= obst.x && this.x <= obst.x +  obst.getWidth()) &&
-				(this.x + this.getWidth() >= obst.x && this.x + this.getWidth() < obst.x+obst.getWidth()) &&
-				(this.y + this.getHeight() <= obst.y + obst.getHeight() + toleranceY)
+				(this.x >= obst.x-toleranceX && this.x <= obst.x +  obst.getWidth()+toleranceX) &&
+				
+				(this.x + this.getWidth() >= obst.x-toleranceX && this.x + this.getWidth() <= obst.x+obst.getWidth()+toleranceX) &&
+				(this.y + this.getHeight() <= obst.y + obst.getHeight() + toleranceY) &&
+				(this.y + this.getHeight() >= obst.y + obst.getHeight() - toleranceY) 
 
 			){
 
@@ -686,8 +713,8 @@ class Villager extends Obstacle{
 
 			else if(
 				this.direction == VERTICAL_D &&
-				(this.x > obst.x && this.x <= obst.x +  obst.getWidth()) &&
-				(this.x + this.getWidth() >= obst.x && this.x + this.getWidth() < obst.x+obst.getWidth()) &&
+				(this.x > obst.x-toleranceX && this.x <= obst.x +  obst.getWidth()+toleranceX) &&
+				(this.x + this.getWidth() >= obst.x-toleranceX && this.x + this.getWidth() <= obst.x+obst.getWidth()+toleranceX) &&
 				(this.y + this.getHeight() >= obst.y + obst.getHeight() - toleranceY) &&
 				(this.y + this.getHeight() <= obst.y + obst.getHeight())
 
@@ -695,6 +722,10 @@ class Villager extends Obstacle{
 				collided = true;
 				break;
 			}
+
+
+			toleranceX = 0;
+			toleranceY = 0;
 
 		}
 
@@ -709,8 +740,109 @@ class Villager extends Obstacle{
 
 
 
+}
 
 
+
+class Gold extends Obstacle{
+	constructor(cnvs_ctx, x, y){
+		super(cnvs_ctx, x, y, assets.resource.gold1);
+		this.cnvs_ctx = cnvs_ctx;
+		this.x = x;
+		this.y = y;
+	}
+
+
+}
+
+class Stone extends Obstacle{
+	constructor(cnvs_ctx, x, y){
+		super(cnvs_ctx, x, y, assets.resource.stone1)
+
+		this.cnvs_ctx = cnvs_ctx;
+		this.x = x;
+		this.y = y;
+	}
+
+
+}
+
+
+
+
+class Tree extends Obstacle{
+	constructor(cnvs_ctx, x, y){
+		super(cnvs_ctx, x, y, assets.tree);
+
+		this.cnvs_ctx = cnvs_ctx;
+		this.x = x;
+		this.y = y;
+		//this.src = "./res/tree/tree.png";
+		//super.setImg(this.src);
+
+	}
+
+
+}
+
+class Villager extends Movable{
+	constructor(cnvs_ctx, x, y) {
+		super(cnvs_ctx, x, y, assets.villager.dw2);
+
+		//this.src = "./res/villager/dw2.png";
+		//super.setImg(this.src);
+
+	}
+
+	buildSpritePath(direction, n){
+		return `./res/villager/${direction}${n}.png`
+	
+	}
+
+
+
+
+
+
+}
+
+
+class Animal extends Movable{
+
+	constructor(cnvs_ctx, x, y, sprite){
+		super(cnvs_ctx, x, y, sprite);
+		
+
+	}
+
+}
+
+
+class Cow extends Animal{
+	constructor(cnvs_ctx, x, y) {
+		super(cnvs_ctx, x, y, assets.cow.cowstand2);
+		this.currPos = "cowstand";
+
+		this.lastUpdate = 0;
+		this.updateInterval = 300 + Math.random() * 500;
+	}
+
+
+
+	update(){
+		if(this.count + this.changeRate > 5
+			|| this.count + this.changeRate < 1){
+			this.changeRate *= -1;
+
+		}
+
+		this.count += this.changeRate;
+
+
+
+		super.setImg(assets.cow[`${this.currPos}${this.count}`]);
+	
+	}
 
 }
 
@@ -788,7 +920,7 @@ class Box{
 
 
 
-const images = [assets.tree, ...Object.values(assets.villager)]
+const images = [assets.tree, ...Object.values(assets.villager), ...Object.values(assets.cow), ...Object.values(assets.resource)]
 
 
 loadGame(images, () => {
@@ -806,9 +938,25 @@ let trees = [
 
 ]	
 
+let animals = [
+	new Cow(ctx, 300, 300)
+	,new Cow(ctx, 500, 250)
+	,new Cow(ctx, 500, 300)
+	,new Cow(ctx, 600, 300)
+	,new Cow(ctx, 700, 300)
+]
+
+
+let resources = [
+	new Gold(ctx, 400, 100)
+	,new Gold(ctx, 700, 240)
+	,new Stone(ctx, 700, 100)
+
+]
+
 	let villager = new Villager(ctx, 10, 10);
 //	let trees = [new Tree(ctx, 140,10)];
-	obs = [...trees, villager];
+	obs = [...trees, villager, ...animals, ...resources];
 
 
 
@@ -850,6 +998,9 @@ for(let y = 0; y < NUM_CELLS_Y;y++){
 let lastUpdate = 0;
 //let isInit = true;
 
+
+let lastUpdateAnimals = 0
+
 function draw(time){
 	// clear screen
 	ctx.clearRect(0, 0, cnvs_width,cnvs_height);
@@ -889,6 +1040,13 @@ function draw(time){
 
 	}
 
+	animals.forEach(a => {
+		if(time - a.lastUpdate > a.updateInterval){
+			a.update();
+			a.lastUpdate = time;
+		}
+
+	})
 
 
 	window.requestAnimationFrame(draw);
