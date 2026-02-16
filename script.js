@@ -133,13 +133,23 @@ class Grid {
 		return [gridPosX, gridPosY];
 	}
 
+	remove(obstacle){
+		
+			let prevOccupiedCells = obstacle.occupiedCells;
+			for(let i = 0; i < prevOccupiedCells.length; i++){
+				let [_prevGridPosX, _prevGridPosY] = prevOccupiedCells[i];
+
+				let currObst = this.cells[_prevGridPosY][_prevGridPosX];
+
+				let idx = this.cells[_prevGridPosY][_prevGridPosX].indexOf(obstacle);
+				this.cells[_prevGridPosY][_prevGridPosX].splice(idx, 1);
+			}
+
+	}
+
 
 	add(obstacle){
 		
-
-		obstacle.nextObstacle = null;
-		obstacle.prevObstacle = null;
-
 
 		const xPos = obstacle.x;
 		const yPos = obstacle.y + obstacle.getHeight();
@@ -151,19 +161,6 @@ class Grid {
 			this.cells[gridPosY][gridPosX].push(obstacle);
 
 		}
-
-
-		// SORT obstacles
-		//
-		obs.sort((a,b) => {
-			
-			const [aGridPosX, aGridPosY] = this.convertToGridCOORD(a.x, a.y + a.getHeight());
-			const [bGridPosX, bGridPosY] = this.convertToGridCOORD(b.x, b.y + b.getHeight());
-			
-			return (a.getHeight() + a.y) - (b.getHeight()+b.y);
-
-			
-		})
 		
 
 	}
@@ -432,50 +429,45 @@ class Villager extends Obstacle{
 
 		this.count += this.changeRate;
 
-		//this.src = this.buildSpritePath(this.currPos, this.count);
-		//super.setImg(this.src);
 
 
 		super.setImg(assets.villager[`${this.currPos}${this.count}`]);
 	
 
-		super.calculateOccupiedCells();
 
-
-		let [prevGridPosX, prevGridPosY] = this.grid.convertToGridCOORD(this.x - this.dx, (this.y-this.dy)+super.getHeight());
-
-		let [currGridPosX, currGridPosY] = this.grid.convertToGridCOORD(this.x, this.y + super.getHeight());
-
-
-
-
-
-			const prevOccupiedCells = super.calculateOccupiedCellsGiven(this.x - this.dx, this.y - this.dy);
+		// SORT obstacles
+		//
+		obs.sort((a,b) => {
 			
-			for(let i = 0; i < prevOccupiedCells.length; i++){
-				let [_prevGridPosX, _prevGridPosY] = prevOccupiedCells[i];
-				
+			const [aGridPosX, aGridPosY] = this.grid.convertToGridCOORD(a.x, a.y + a.getHeight());
+			const [bGridPosX, bGridPosY] = this.grid.convertToGridCOORD(b.x, b.y + b.getHeight());
+			
+			return (a.getHeight() + a.y) - (b.getHeight()+b.y);
 
-				//if(_prevGridPosX == prevGridPosX && _prevGridPosY == prevGridPosY) continue;
-
-
-				let currObst = this.grid.cells[_prevGridPosY][_prevGridPosX];
-
-				let idx = this.grid.cells[_prevGridPosY][_prevGridPosX].indexOf(this);
-				this.grid.cells[_prevGridPosY][_prevGridPosX].splice(idx, 1);
-			}
-
-
-			this.grid.add(this);
+			
+		})
 	}
+
+	
 
 
 	moveDown(){
 
 		this.direction = VERTICAL_D;
 
-		if(this.isCollided()) this.y = this.y - this.dy;
+		//if(this.isCollided()) this.y = this.y - this.dy;
 
+		if(this.isCollided()){
+
+			this.grid.remove(this);
+			super.calculateOccupiedCells();
+			this.grid.add(this);
+			this.currPos = "dw";
+			this.update();
+			return;
+		}
+
+		this.grid.remove(this);
 		this.dx = 0;
 		this.dy = 1 * this.walkingSpeed;
 		this.y += this.dy;
@@ -485,6 +477,10 @@ class Villager extends Obstacle{
 			this.y = cnvs_height - super.getHeight();
 
 		}
+
+		super.calculateOccupiedCells();
+		this.grid.add(this);
+
 		this.currPos = "dw";
 		this.update();
 
@@ -495,7 +491,19 @@ class Villager extends Obstacle{
 
 		this.direction = VERTICAL_U;
 
-		if(this.isCollided()) this.y = this.y - this.dy;
+		//if(this.isCollided()) this.y = this.y - this.dy;
+
+
+		if(this.isCollided()){
+			this.grid.remove(this);
+			super.calculateOccupiedCells();
+			this.grid.add(this);
+			this.currPos = "uw";
+			this.update();
+			return;
+		}
+
+		this.grid.remove(this);
 
 		this.dx = 0;
 		this.dy = -1 * this.walkingSpeed;
@@ -506,6 +514,10 @@ class Villager extends Obstacle{
 			this.y = 0;
 		}
 
+		super.calculateOccupiedCells();
+
+		this.grid.add(this);
+
 		this.currPos = "uw";
 		this.update();
 	}
@@ -515,8 +527,25 @@ class Villager extends Obstacle{
 
 		this.direction = HORIZONTAL_L;
 
-		if(this.isCollided()) this.x = this.x - this.dx;
+		//if(this.isCollided()) this.x = this.x - this.dx;
 		
+
+		if(this.isCollided()){
+
+			this.grid.remove(this);
+			super.calculateOccupiedCells();
+			this.grid.add(this);
+			this.currPos = "lw";
+			this.update();
+			return;
+		}
+
+
+
+		this.grid.remove(this);
+
+
+
 		this.dy = 0;
 		this.dx = -1 * this.walkingSpeed;
 		this.x += this.dx;
@@ -525,6 +554,11 @@ class Villager extends Obstacle{
 		if(this.x < 0) {
 			this.x = 0;
 		}
+
+		super.calculateOccupiedCells();
+		this.grid.add(this);
+
+
 		this.currPos = "lw";
 		this.update();
 
@@ -537,7 +571,18 @@ class Villager extends Obstacle{
 		this.direction = HORIZONTAL_R;
 
 
-		if(this.isCollided()) this.x = this.x-this.dx;
+		//if(this.isCollided()) this.x = this.x-this.dx;
+
+		if(this.isCollided()){
+
+			this.grid.remove(this);
+			super.calculateOccupiedCells();
+			this.grid.add(this);
+			this.currPos = "rw";
+			this.update();
+			return;
+		}	
+		this.grid.remove(this);
 
 		this.dy = 0;
 		this.dx = 1 * this.walkingSpeed;
@@ -553,6 +598,9 @@ class Villager extends Obstacle{
 			this.x = cnvs_width - super.getWidth();
 		}
 
+		super.calculateOccupiedCells();
+		this.grid.add(this);
+
 		this.currPos = "rw";
 		this.update();
 
@@ -567,8 +615,7 @@ class Villager extends Obstacle{
 
 		let nearByObst = this.findNearByObstacles();
 
-		
-			console.log(this, nearByObst);
+		console.log(nearByObst);
 
 		const toleranceY = 5;
 		const toleranceX = 5;
@@ -578,22 +625,40 @@ class Villager extends Obstacle{
 
 
 			if(
+				(this.x + this.getWidth() >= obst.x && this.x + this.getWidth() <= obst.x + obst.getWidth())
+				&& (this.y+this.getHeight() >= obst.y + obst.getHeight()-toleranceY && this.y+this.getHeight() <= obst.y + obst.getHeight()+toleranceY)
+				&& this.direction == HORIZONTAL_L
+			){
+				collided = false;
+				break;
+			}
+			else if(
+				(this.x >= obst.x && this.x <= obst.x + obst.getWidth())
+				&& (this.y+this.getHeight() >= obst.y+obst.getHeight()-toleranceY && this.y+this.getHeight() <= obst.y+obst.getHeight()+toleranceY)
+				&& this.direction == HORIZONTAL_R
+			){
+				collided = false;
+				break;
+			}
+
+
+			if(
 
 				this.direction == HORIZONTAL_R &&
-				(this.x + this.getWidth() > obst.x) &&
-				(this.x < obst.x + obst.getWidth()) &&
-				(this.y + this.getHeight() > obst.y+obst.getHeight()-toleranceY) &&
-				(this.y + this.getHeight() < obst.y+obst.getHeight()+toleranceY)
+				(this.x + this.getWidth() >= obst.x) &&
+				(this.x <= obst.x + obst.getWidth()) &&
+				(this.y + this.getHeight() >= obst.y+obst.getHeight()-toleranceY) &&
+				(this.y + this.getHeight() <= obst.y+obst.getHeight()+toleranceY)
 			) {
 				collided = true;
 				break;
 			} 
 			else if(
 				this.direction == HORIZONTAL_L &&
-				(this.x + this.getWidth() > obst.x) &&
-				(this.x < obst.x + obst.getWidth()) &&
-				(this.y + this.getHeight() > obst.y + obst.getHeight() - toleranceY) &&
-				(this.y + this.getHeight() < obst.y+obst.getHeight() + toleranceY)
+				(this.x + this.getWidth() >= obst.x) &&
+				(this.x <= obst.x + obst.getWidth()) &&
+				(this.y + this.getHeight() >= obst.y + obst.getHeight() - toleranceY) &&
+				(this.y + this.getHeight() <= obst.y+obst.getHeight() + toleranceY)
 			)
 			{
 				collided = true;
@@ -601,20 +666,29 @@ class Villager extends Obstacle{
 			}
 			else if(
 				this.direction == VERTICAL_U &&
-				(this.x > obst.x && this.x < obst.x +  obst.getWidth()) &&
-				(this.x + this.getWidth() > obst.x && this.x + this.getWidth() < obst.x+obst.getWidth()) &&
-				(this.y + this.getHeight() <= obst.y + obst.getHeight() + 15)
+				(this.x >= obst.x && this.x <= obst.x +  obst.getWidth()) &&
+				(this.x + this.getWidth() >= obst.x && this.x + this.getWidth() < obst.x+obst.getWidth()) &&
+				(this.y + this.getHeight() <= obst.y + obst.getHeight() + toleranceY)
 
 			){
+
+				let idxThis = obs.indexOf(this);
+				let idxObs = obs.indexOf(obst);
+
+				if(idxObs > idxThis) {
+					collided = false;
+					break;
+				}
+
 				collided = true;
 				break;
 			}
 
 			else if(
 				this.direction == VERTICAL_D &&
-				(this.x > obst.x && this.x < obst.x +  obst.getWidth()) &&
-				(this.x + this.getWidth() > obst.x && this.x + this.getWidth() < obst.x+obst.getWidth()) &&
-				(this.y + this.getHeight() > obst.y + obst.getHeight() - 15) &&
+				(this.x > obst.x && this.x <= obst.x +  obst.getWidth()) &&
+				(this.x + this.getWidth() >= obst.x && this.x + this.getWidth() < obst.x+obst.getWidth()) &&
+				(this.y + this.getHeight() >= obst.y + obst.getHeight() - toleranceY) &&
 				(this.y + this.getHeight() <= obst.y + obst.getHeight())
 
 			){
