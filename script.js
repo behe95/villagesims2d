@@ -1,3 +1,6 @@
+
+
+
 const isDevMode = true;
 
 
@@ -61,6 +64,11 @@ assets.villager.rw3.src = "./res/villager/rw3.png";
 
 
 
+// constant variables to identify the axis
+const HORIZONTAL_R = 0;
+const HORIZONTAL_L = 1;
+const VERTICAL_U = 2
+const VERTICAL_D = 3;
 
 
 const canvas = document.getElementById("_canvas");
@@ -125,6 +133,11 @@ class Grid {
 
 
 	add(obstacle){
+		
+
+		obstacle.nextObstacle = null;
+		obstacle.prevObstacle = null;
+
 
 		const xPos = obstacle.x;
 		const yPos = obstacle.y + obstacle.getHeight();
@@ -157,6 +170,7 @@ class Grid {
 
 				obstacle.nextObstacle = currObstacle;
 				currObstacle.prevObstacle = obstacle;
+				obstacle.prevObstacle = null;
 				this.cells[gridPosY][gridPosX] = obstacle;
 			}
 			// obstacle y position is before the existing grid obstacle
@@ -166,6 +180,7 @@ class Grid {
 				if(currObstacle.nextObstacle == null){
 					currObstacle.nextObstacle = obstacle;
 					obstacle.prevObstacle = currObstacle;
+					obstacle.nextObstacle = null;
 
 				}
 				// existing obstacle has next obstacle(s)
@@ -199,7 +214,6 @@ class Grid {
 
 		}
 
-		
 
 		// SORT obstacles
 		//
@@ -231,6 +245,11 @@ class Grid {
 			
 		})
 
+		//calculate occupied region
+		obstacle.calculateOccupiedCells();
+		
+		console.log(gridPosX, gridPosY);
+		console.log(obstacle);
 	}
 
 
@@ -344,9 +363,16 @@ class Obstacle{
 		//this.grid.add(this);
 		// testing purpose
 		if(isDevMode){
+
+
 			this.box = new Box(cnvs_ctx, x, y, 0, 0,"",false,"red");
+
 		}
-		
+
+
+		// occupied cells in grid
+		this.occupiedCells = []
+		this.calculateOccupiedCells();
 	}
 
 
@@ -371,12 +397,48 @@ class Obstacle{
 
 		// testing purpose
 		if(isDevMode){
+			// show border box
 			this.box.setPosition(this.x, this.y);
 			this.box.setStrokeSize(3);
 			this.box.setDimension(this.img.naturalWidth, this.img.naturalHeight);
 			this.box.draw();
+
+			// show coordinates
+			this.cnvs_ctx.fillStyle = "blue";
+			this.cnvs_ctx.font = "16px serif"
+			this.cnvs_ctx.fillText(`(${this.x},${this.y})`, this.x-40,this.y);
+			
+			this.cnvs_ctx.fillText(`(${this.x+this.getWidth()},${this.y})`, this.x+this.getWidth(),this.y);
+			
+			this.cnvs_ctx.fillText(`(${this.x},${this.y+this.getHeight()})`, this.x-40,this.y+this.getHeight()+20);
+			
+			this.cnvs_ctx.fillText(`(${this.x+this.getWidth()},${this.y+this.getHeight()})`, this.x+this.getWidth(),this.y+this.getHeight()+20);
+			
+
 		}		
 
+	}
+
+
+	// calculate the occupied cells by this obstacle
+	// occupied cells mean # of cells the obstacle occupies
+	// from range x to x + width
+	// and from range y to y + height
+	calculateOccupiedCells(){
+		const leftX = Math.floor(this.x / CELL_SIZE);
+		const rightX = Math.floor((this.x + this.getWidth()) / CELL_SIZE);
+		const topY = Math.floor(this.y / CELL_SIZE);
+		const bottomY = Math.floor((this.y + this.getHeight()) / CELL_SIZE);
+		
+		this.occupiedCells = [];
+		for(let y = topY; y <= bottomY; y++){
+			for(let x = leftX; x <= rightX; x++){
+				this.occupiedCells.push([x,y]);
+			}
+		}
+
+
+		console.log("AAAAAAAAAA ", this);
 	}
 
 }
@@ -418,6 +480,8 @@ class Villager extends Obstacle{
 
 		this.walkingSpeed = 5;
 
+		this.collisionDirection = null;
+
 	}
 
 	buildSpritePath(direction, n){
@@ -441,8 +505,17 @@ class Villager extends Obstacle{
 
 
 		super.setImg(assets.villager[`${this.currPos}${this.count}`]);
+		
+		let [prevGridPosX, prevGridPosY] = this.grid.convertToGridCOORD(this.x - this.dx, (this.y-this.dy)+super.getHeight());
+
+		let [currGridPosX, currGridPosY] = this.grid.convertToGridCOORD(this.x, this.y + super.getHeight());
 
 
+		console.log(this.x - this.dx, (this.y-this.dy)+super.getHeight());
+		console.log(prevGridPosX, prevGridPosY);
+		console.log(this.x, this.y+super.getHeight());
+		console.log(currGridPosX, currGridPosY);
+		/*
 		let prevGridPosX = Math.floor((this.x - this.dx) / CELL_SIZE);
 		let prevGridPosY = Math.floor(((this.y - this.dy)+super.getHeight()) / CELL_SIZE);
 
@@ -456,14 +529,16 @@ class Villager extends Obstacle{
 
 		if(prevGridPosX >= NUM_CELLS_X) prevGridPosX = NUM_CELLS_X-1;
 		if(prevGridPosY >= NUM_CELLS_Y) prevGridPosY = NUM_CELLS_Y-1;
-
+		*/
 		// position change
 		// Remove from the previous grid cell
 		if(prevGridPosX != currGridPosX || currGridPosY != prevGridPosY){
-
+			//console.log(this.prevObstacle, this.nextObstacle);
 			// previous grid cell has only one obstacle
 			if(this.prevObstacle == null && this.nextObstacle == null)
 			{
+
+				console.log("1");
 				this.grid.cells[prevGridPosY][prevGridPosX] = null;
 			}
 			// previous grid cell has more than one obstacle
@@ -474,6 +549,7 @@ class Villager extends Obstacle{
 					
 
 				this.nextObstacle = null;
+				console.log("2");
 
 			}
 			// obstacle to be removed has previous obstacle(s) and next obstacle(s)
@@ -496,10 +572,12 @@ class Villager extends Obstacle{
 				next.prevObstacle = prev;
 				this.prevObstacle = null;
 				this.nextObstacle = null;
+				console.log("3");
 
 			} 
 			// obstacle to be removed has previous obstacle(s) but no next obstacle(s)
 			else {
+				console.log("4");
 				let tmpCurr = this.grid.cells[prevGridPosY][prevGridPosX];
 				let tmpPrev = null;
 				while(tmpCurr){
@@ -535,15 +613,23 @@ class Villager extends Obstacle{
 
 
 			//this.img.onload = () => {
+				this.prevObstacle = null;
+				this.nextObstacle = null;
 				this.grid.add(this);
 			//}
 
 		}
 
+		// calculate occupied region
+		//super.calculateOccupiedCells();
+
+
 	}
 
 
 	moveDown(){
+		if(this.isCollided()) return;
+
 		this.dx = 0;
 		this.dy = 1 * this.walkingSpeed;
 		this.y += this.dy;
@@ -560,6 +646,9 @@ class Villager extends Obstacle{
 	}
 
 	moveUp(){
+
+		if(this.isCollided()) return;
+
 		this.dx = 0;
 		this.dy = -1 * this.walkingSpeed;
 		this.y += this.dy;
@@ -574,6 +663,8 @@ class Villager extends Obstacle{
 	}
 
 	moveLeft(){
+
+		if(this.isCollided()) return;
 		this.dy = 0;
 		this.dx = -1 * this.walkingSpeed;
 		this.x += this.dx;
@@ -589,8 +680,9 @@ class Villager extends Obstacle{
 
 	moveRight(){
 
-		this.isObstacle();
-		
+
+		if(this.isCollided() && this.collisionDirection && this.collisionDirection == HORIZONTAL_R) return;
+
 		this.dy = 0;
 		this.dx = 1 * this.walkingSpeed;
 		this.x += this.dx;
@@ -612,12 +704,89 @@ class Villager extends Obstacle{
 
 
 	// collision
-	isObstacle(){
+	isCollided(){
 
 		let collided = false;
 
+
 		const [x,y] = this.grid.convertToGridCOORD(this.x, this.y+this.getHeight());
 		let tmp = this.grid.cells[y][x]
+
+		const tolerance = 5;
+
+		while(tmp){
+
+			if(tmp === this) {
+				tmp = tmp.nextObstacle;
+				continue;
+			
+			}
+			
+
+			console.log("A===>", this.x + this.getWidth());
+			console.log("B====>", this.y + this.getHeight());
+			console.log("C====>", tmp.y+tmp.getHeight());
+			console.log("D====>", this.y+this.getHeight());
+
+			// horizontal collision
+			if(
+				this.x + this.getWidth() > tmp.x
+				&& (this.y + this.getHeight() < tmp.y+tmp.getHeight() && this.y + this.getHeight() > tmp.y)
+			){
+				this.collisionDirection = HORIZONTAL_R;
+				collided = true;
+				break;
+			}
+			else{
+				this.collisionDirection = null;
+				collided = false;
+				
+			}
+
+
+
+
+			/*
+			// right collision - y within certain range
+			if(
+				this.x + this.getWidth() > tmp.x
+				&& (this.y + this.getHeight() < tmp.y+tmp.getHeight() + 5 && this.y + this.getHeight() > tmp.y + tmp.getHeight() - 5)
+
+			){
+
+				collided = true;
+				break;
+			}
+			//upward collision - x within certain range
+			else if(
+				(this.y + this.getHeight() + 5 < tmp.y + tmp.getHeight())
+				&&
+				(this.x < tmp.x + tmp.getWidth() && this.x > tmp.x + tmp.getWidth())
+			)
+			{
+				console.log("HELLO");
+				collided = true;
+				break;
+			}
+			//downward collision - x within certain range
+			else if(
+				(this.y + this.getHeight() - 5 > tmp.y + tmp.getHeight())
+				&&
+				(this.x < tmp.x + tmp.getWidth() && this.x > tmp.x + tmp.getWidth())
+			)
+			{
+				collided = false;
+				break;
+			}
+
+
+			*/
+
+
+
+			tmp = tmp.nextObstacle;
+			
+		}
 
 
 		console.log(tmp);
@@ -727,7 +896,19 @@ const images = [assets.tree, ...Object.values(assets.villager)]
 
 
 loadGame(images, () => {
-	
+/*let trees = [
+	new Tree(ctx, 100, 0)
+	,new Tree(ctx, 100,5)
+	,new Tree(ctx, 56, 24)
+
+	,new Tree(ctx, 156,224)
+	,new Tree(ctx, 356, 224)
+	,new Tree(ctx, 256, 24)
+	,new Tree(ctx, 256, 124)
+	,new Tree(ctx, 156, 124)
+
+
+]	*/
 
 	let villager = new Villager(ctx, 10, 10);
 	let trees = [new Tree(ctx, 140,10)];
