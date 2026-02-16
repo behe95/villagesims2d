@@ -109,7 +109,7 @@ class Grid {
 		for(let y = 0;y < NUM_CELLS_Y; y++){
 			this.cells[y] = new Array(NUM_CELLS_X);
 			for(let x = 0; x < NUM_CELLS_X;x++){
-				this.cells[y][x] = null;
+				this.cells[y][x] = [];
 			}
 		}
 	}
@@ -152,9 +152,18 @@ class Grid {
 
 */
 
-		const [gridPosX, gridPosY] = this.convertToGridCOORD(xPos, yPos);
+		//const [gridPosX, gridPosY] = this.convertToGridCOORD(xPos, yPos);
 
+
+		for(let i in obstacle.occupiedCells){
+			let [gridPosX, gridPosY] = obstacle.occupiedCells[i];
+			console.log(obstacle.occupiedCells[i])
+			
+			this.cells[gridPosY][gridPosX].push(obstacle);
+
+			/*
 		let currObstacle = this.cells[gridPosY][gridPosX];
+
 		// no obstacle in current grid cell
 		if(!currObstacle){
 
@@ -165,6 +174,12 @@ class Grid {
 		}
 		// current grid has obstacle already
 		else {
+
+			obstacle.prevObstacle = null;
+			obstacle.nextObstacle = currObstacle;
+			currObstacle.prevObstacle = obstacle;
+
+			/*
 			// obstacle y position is after the existing grid obstacle
 			if(obstacle.getHeight() + obstacle.y > currObstacle.getHeight() + currObstacle.y){
 
@@ -212,6 +227,7 @@ class Grid {
 
 			}
 
+		}*/
 		}
 
 
@@ -249,7 +265,7 @@ class Grid {
 		//calculate occupied region
 		//obstacle.calculateOccupiedCells();
 	
-		console.log(gridPosX, gridPosY);
+		//console.log(gridPosX, gridPosY);
 		console.log(obstacle);
 	}
 
@@ -353,9 +369,19 @@ class Obstacle{
 
 		
 		if(this.img.complete){
+
+
+			// occupied cells in grid
+			this.occupiedCells = []
+			this.calculateOccupiedCells();
 			this.grid.add(this);
 		}else{
 			this.img.onload = () => {
+				
+				// occupied cells in grid
+				this.occupiedCells = []
+				this.calculateOccupiedCells();
+
 				this.grid.add(this);
 			}
 
@@ -371,9 +397,6 @@ class Obstacle{
 		}
 
 
-		// occupied cells in grid
-		this.occupiedCells = []
-		this.calculateOccupiedCells();
 	}
 
 
@@ -426,11 +449,17 @@ class Obstacle{
 	// from range x to x + width
 	// and from range y to y + height
 	calculateOccupiedCells(){
-		const leftX = Math.floor(this.x / CELL_SIZE);
-		const rightX = Math.floor((this.x + this.getWidth()) / CELL_SIZE);
-		const topY = Math.floor(this.y / CELL_SIZE);
-		const bottomY = Math.floor((this.y + this.getHeight()) / CELL_SIZE);
+		let leftX = Math.floor(this.x / CELL_SIZE);
+		let rightX = Math.floor((this.x + this.getWidth()) / CELL_SIZE);
+		let topY = Math.floor(this.y / CELL_SIZE);
+		let bottomY = Math.floor((this.y + this.getHeight()) / CELL_SIZE);
 		
+		
+		if(rightX >= NUM_CELLS_X) rightX = NUM_CELLS_X - 1;
+		if(bottomY >= NUM_CELLS_Y) bottomY = NUM_CELLS_Y - 1;
+
+
+
 		this.occupiedCells = [];
 		for(let y = topY; y <= bottomY; y++){
 			for(let x = leftX; x <= rightX; x++){
@@ -440,6 +469,26 @@ class Obstacle{
 
 
 		console.log("AAAAAAAAAA ", this);
+	}
+
+
+	calculateOccupiedCellsGiven(x, y){
+		let leftX = Math.floor(x / CELL_SIZE);
+		let rightX = Math.floor((x + this.getWidth()) / CELL_SIZE);
+		let topY = Math.floor(y / CELL_SIZE);
+		let bottomY = Math.floor((y + this.getHeight()) / CELL_SIZE);
+		
+		if(rightX >= NUM_CELLS_X) rightX = NUM_CELLS_X - 1;
+		if(bottomY >= NUM_CELLS_Y) bottomY = NUM_CELLS_Y - 1;
+		
+		let occupiedCells = [];
+		for(let y = topY; y <= bottomY; y++){
+			for(let x = leftX; x <= rightX; x++){
+				occupiedCells.push([x,y]);
+			}
+		}
+
+		return occupiedCells;
 	}
 
 }
@@ -535,98 +584,28 @@ class Villager extends Obstacle{
 		if(prevGridPosX >= NUM_CELLS_X) prevGridPosX = NUM_CELLS_X-1;
 		if(prevGridPosY >= NUM_CELLS_Y) prevGridPosY = NUM_CELLS_Y-1;
 		*/
-		// position change
-		// Remove from the previous grid cell
-		if(prevGridPosX != currGridPosX || currGridPosY != prevGridPosY){
-			//console.log(this.prevObstacle, this.nextObstacle);
-			// previous grid cell has only one obstacle
-			if(this.prevObstacle == null && this.nextObstacle == null)
-			{
-
-				console.log("1");
-				this.grid.cells[prevGridPosY][prevGridPosX] = null;
-			}
-			// previous grid cell has more than one obstacle
-			// obstacle to be removed has next obstacle(s)
-			else if(this.prevObstacle == null && this.nextObstacle){
-				this.nextObstacle.prevObstacle = null;
-				this.grid.cells[prevGridPosY][prevGridPosX] = this.nextObstacle;
-					
-
-				this.nextObstacle = null;
-				console.log("2");
-
-			}
-			// obstacle to be removed has previous obstacle(s) and next obstacle(s)
-			else if(this.prevObstacle != null && this.nextObstacle != null){
-				let tmpCurr = this.grid.cells[prevGridPosY][prevGridPosX];
-				let tmpPrev = null;
-				while(tmpCurr){
-					tmpPrev = tmpCurr;
-
-					if(this === tmpCurr) {
-						break;
-					}
-					tmpCurr = tmpCurr.nextObstacle;
-				}
-
-				let prev = this.prevObstacle;
-				let next = this.nextObstacle;
-
-				prev.nextObstacle = next;
-				next.prevObstacle = prev;
-				this.prevObstacle = null;
-				this.nextObstacle = null;
-				console.log("3");
-
-			} 
-			// obstacle to be removed has previous obstacle(s) but no next obstacle(s)
-			else {
-				console.log("4");
-				let tmpCurr = this.grid.cells[prevGridPosY][prevGridPosX];
-				let tmpPrev = null;
-				while(tmpCurr){
-					tmpPrev = tmpCurr;
-					if(this === tmpCurr){
-						break;
-					}
-					tmpCurr = tmpCurr.nextObstacle;
-
-				}
-				let prev = this.prevObstacle;
-				prev.nextObstacle = null;
-				this.prevObstacle = null;
-
-			}
-			/*
-			if(this.prevObstcle != null){
-				this.prevObstacle.nextObstacle = this.nextObstacle;
-			}else{
-				this.grid.cells[prevGridPosY][prevGridPosX] = this.nextObstacle;
-
-			}
 
 
-			if(this.nextObstacle != null){
+
+
+			const prevOccupiedCells = super.calculateOccupiedCellsGiven(this.x - this.dx, this.y - this.dy);
+			
+			console.log(prevOccupiedCells);
+			for(let i = 0; i < prevOccupiedCells.length; i++){
+				let [_prevGridPosX, _prevGridPosY] = prevOccupiedCells[i];
 				
-				this.nextObstacle.prevObstacle = this.prevObstacle;
 
+				//if(_prevGridPosX == prevGridPosX && _prevGridPosY == prevGridPosY) continue;
+
+
+				let currObst = this.grid.cells[_prevGridPosY][_prevGridPosX];
+
+				let idx = this.grid.cells[_prevGridPosY][_prevGridPosX].indexOf(this);
+				this.grid.cells[_prevGridPosY][_prevGridPosX].splice(idx, 1);
 			}
-			*/
 
 
-			//this.img.onload = () => {
-				this.prevObstacle = null;
-				this.nextObstacle = null;
-				this.grid.add(this);
-			//}
-
-		}
-
-		// calculate occupied region
-		//super.calculateOccupiedCells();
-
-
+			this.grid.add(this);
 	}
 
 
@@ -716,80 +695,6 @@ class Villager extends Obstacle{
 		let tmp = this.grid.cells[y][x]
 
 		const tolerance = 5;
-
-		while(tmp){
-
-			if(tmp === this) {
-				tmp = tmp.nextObstacle;
-				continue;
-			
-			}
-			
-
-			console.log("A===>", this.x + this.getWidth());
-			console.log("B====>", this.y + this.getHeight());
-			console.log("C====>", tmp.y+tmp.getHeight());
-			console.log("D====>", this.y+this.getHeight());
-
-			// horizontal collision
-			if(
-				this.x + this.getWidth() > tmp.x
-				&& (this.y + this.getHeight() < tmp.y+tmp.getHeight() && this.y + this.getHeight() > tmp.y)
-			){
-				this.collisionDirection = HORIZONTAL_R;
-				collided = true;
-				break;
-			}
-			else{
-				this.collisionDirection = null;
-				collided = false;
-				
-			}
-
-
-
-
-			/*
-			// right collision - y within certain range
-			if(
-				this.x + this.getWidth() > tmp.x
-				&& (this.y + this.getHeight() < tmp.y+tmp.getHeight() + 5 && this.y + this.getHeight() > tmp.y + tmp.getHeight() - 5)
-
-			){
-
-				collided = true;
-				break;
-			}
-			//upward collision - x within certain range
-			else if(
-				(this.y + this.getHeight() + 5 < tmp.y + tmp.getHeight())
-				&&
-				(this.x < tmp.x + tmp.getWidth() && this.x > tmp.x + tmp.getWidth())
-			)
-			{
-				console.log("HELLO");
-				collided = true;
-				break;
-			}
-			//downward collision - x within certain range
-			else if(
-				(this.y + this.getHeight() - 5 > tmp.y + tmp.getHeight())
-				&&
-				(this.x < tmp.x + tmp.getWidth() && this.x > tmp.x + tmp.getWidth())
-			)
-			{
-				collided = false;
-				break;
-			}
-
-
-			*/
-
-
-
-			tmp = tmp.nextObstacle;
-			
-		}
 
 
 		console.log(tmp);
