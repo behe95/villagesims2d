@@ -244,10 +244,11 @@ class Grid {
 
 			
 		})
+		
 
 		//calculate occupied region
-		obstacle.calculateOccupiedCells();
-		
+		//obstacle.calculateOccupiedCells();
+	
 		console.log(gridPosX, gridPosY);
 		console.log(obstacle);
 	}
@@ -505,7 +506,11 @@ class Villager extends Obstacle{
 
 
 		super.setImg(assets.villager[`${this.currPos}${this.count}`]);
-		
+	
+
+		super.calculateOccupiedCells();
+
+
 		let [prevGridPosX, prevGridPosY] = this.grid.convertToGridCOORD(this.x - this.dx, (this.y-this.dy)+super.getHeight());
 
 		let [currGridPosX, currGridPosY] = this.grid.convertToGridCOORD(this.x, this.y + super.getHeight());
@@ -608,8 +613,6 @@ class Villager extends Obstacle{
 
 			}
 			*/
-
-
 
 
 			//this.img.onload = () => {
