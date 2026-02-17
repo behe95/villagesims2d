@@ -52,6 +52,15 @@ const assets = {
 		gold1: new Image()
 		,stone1: new Image()
 	}
+	,terrain: {
+		greengrass1: new Image()
+		,greengrass2: new Image()
+		,drygrass1: new Image()
+
+	}
+	,structure: {
+		house: new Image()
+	}
 
 }
 
@@ -85,6 +94,13 @@ assets.cow.cowstand5.src = "./res/cow/cowstand5.png";
 
 assets.resource.gold1.src = "./res/gold/gold1.png";
 assets.resource.stone1.src = "./res/stone/stone1.png";
+
+assets.terrain.greengrass1.src = "./res/terrain/greengrass1.png";
+assets.terrain.greengrass2.src = "./res/terrain/greengrass2.png";
+assets.terrain.drygrass1.src = "./res/terrain/drygrass1.png";
+
+assets.structure.house.src = "./res/structure/house.png";
+
 
 // constant variables to identify the axis
 const HORIZONTAL_R = 0;
@@ -156,6 +172,8 @@ class Grid {
 	}
 
 	remove(obstacle){
+
+			
 		
 			let prevOccupiedCells = obstacle.occupiedCells;
 			for(let i = 0; i < prevOccupiedCells.length; i++){
@@ -164,7 +182,9 @@ class Grid {
 				let currObst = this.cells[_prevGridPosY][_prevGridPosX];
 
 				let idx = this.cells[_prevGridPosY][_prevGridPosX].indexOf(obstacle);
-				this.cells[_prevGridPosY][_prevGridPosX].splice(idx, 1);
+				if(idx !== -1){
+					this.cells[_prevGridPosY][_prevGridPosX].splice(idx, 1);
+				}
 			}
 
 	}
@@ -232,9 +252,11 @@ addEventListener("keyup", (e) => {
 /** Obstacle class
  */
 
-const grid = new Grid()
+const grid = new Grid();
 
-class Obstacle{
+
+
+class Objekt{
 	constructor(cnvs_ctx, x, y, img){
 		this.cnvs_ctx = cnvs_ctx;
 		this.x = x;
@@ -275,7 +297,7 @@ class Obstacle{
 		if(isDevMode){
 
 
-			this.box = new Box(cnvs_ctx, x, y, 0, 0,"",false,"red");
+			this.box = new Box({cnvs_ctx:cnvs_ctx, x:x, y:y, w:0, h:0,color:"",fill:false,stroke:"red"});
 
 		}
 
@@ -339,14 +361,15 @@ class Obstacle{
 	// and from range y to y + height
 	calculateOccupiedCells(){
 		let leftX = Math.floor(this.x / CELL_SIZE);
-		let rightX = Math.floor((this.x + this.getWidth()) / CELL_SIZE);
+		let rightX = Math.ceil((this.x + this.getWidth()) / CELL_SIZE)-1;
 		let topY = Math.floor(this.y / CELL_SIZE);
-		let bottomY = Math.floor((this.y + this.getHeight()) / CELL_SIZE);
+		let bottomY = Math.ceil((this.y + this.getHeight()) / CELL_SIZE)-1;
 		
 		
 		if(rightX >= NUM_CELLS_X) rightX = NUM_CELLS_X - 1;
 		if(bottomY >= NUM_CELLS_Y) bottomY = NUM_CELLS_Y - 1;
-
+		if(leftX < 0) leftX = 0;
+		if(topY < 0) topY = 0;
 
 
 		this.occupiedCells = [];
@@ -362,12 +385,14 @@ class Obstacle{
 
 	calculateOccupiedCellsGiven(x, y){
 		let leftX = Math.floor(x / CELL_SIZE);
-		let rightX = Math.floor((x + this.getWidth()) / CELL_SIZE);
+		let rightX = Math.ceil((x + this.getWidth()) / CELL_SIZE)-1;
 		let topY = Math.floor(y / CELL_SIZE);
-		let bottomY = Math.floor((y + this.getHeight()) / CELL_SIZE);
+		let bottomY = Math.ceil((y + this.getHeight()) / CELL_SIZE)-1;
 		
 		if(rightX >= NUM_CELLS_X) rightX = NUM_CELLS_X - 1;
 		if(bottomY >= NUM_CELLS_Y) bottomY = NUM_CELLS_Y - 1;
+		if(leftX < 0) leftX = 0;
+		if(topY < 0) topY = 0;
 		
 		let occupiedCells = [];
 		for(let y = topY; y <= bottomY; y++){
@@ -400,7 +425,11 @@ class Obstacle{
 
 }
 
-
+class Obstacle extends Objekt{
+	constructor(cnvs_ctx, x, y, sprite){
+		super(cnvs_ctx, x, y, sprite);
+	}
+}
 
 class Movable extends Obstacle {
 
@@ -469,21 +498,41 @@ class Movable extends Obstacle {
 
 		//if(this.isCollided()) this.y = this.y - this.dy;
 
+
+
+
+		this.dx = 0;
+
+		const originalY = this.y;
+		let predY = this.y + this.walkingSpeed;
+		this.y = predY;
+		let predOccupiedCells = this.calculateOccupiedCellsGiven(this.x, predY);
+		const originalOccupiedCells = this.occupiedCells;
+		this.occupiedCells = predOccupiedCells;
+		const collided = this.isCollided();
+		
+		this.occupiedCells = originalOccupiedCells;
+		this.y = originalY;
+
+
+
 		if(this.isCollided()){
 
-			this.grid.remove(this);
-			super.calculateOccupiedCells();
-			this.grid.add(this);
+			//this.grid.remove(this);
+			//super.calculateOccupiedCells();
+			//this.grid.add(this);
 			this.currPos = "dw";
 			this.update();
 			return;
 		}
 
 		this.grid.remove(this);
+		this.y = predY;
+		/*
 		this.dx = 0;
 		this.dy = 1 * this.walkingSpeed;
 		this.y += this.dy;
-
+		*/
 		// boundary down
 		if(this.y + super.getHeight() > cnvs_height){
 			this.y = cnvs_height - super.getHeight();
@@ -503,24 +552,36 @@ class Movable extends Obstacle {
 
 		this.direction = VERTICAL_U;
 
-		//if(this.isCollided()) this.y = this.y - this.dy;
+		this.dx = 0;
+
+		const originalY = this.y;
+		let predY = this.y - this.walkingSpeed;
+		this.y = predY;
+		let predOccupiedCells = this.calculateOccupiedCellsGiven(this.x, predY);
+		const originalOccupiedCells = this.occupiedCells;
+		this.occupiedCells = predOccupiedCells;
+		const collided = this.isCollided();
+		
+		this.occupiedCells = originalOccupiedCells;
+		this.y = originalY;
 
 
 		if(this.isCollided()){
-			this.grid.remove(this);
-			super.calculateOccupiedCells();
-			this.grid.add(this);
+		//	this.grid.remove(this);
+		//	super.calculateOccupiedCells();
+		//	this.grid.add(this);
 			this.currPos = "uw";
 			this.update();
 			return;
 		}
 
 		this.grid.remove(this);
-
+		this.y = predY;
+		/*
 		this.dx = 0;
 		this.dy = -1 * this.walkingSpeed;
 		this.y += this.dy;
-
+		*/
 		// boundary up
 		if(this.y < 0){
 			this.y = 0;
@@ -538,15 +599,31 @@ class Movable extends Obstacle {
 
 
 		this.direction = HORIZONTAL_L;
+		
+		this.dy = 0;
+		const originalX = this.x;
+		let predX = this.x - this.walkingSpeed;
+		this.x = predX;
+		console.log("predX, ", predX);
+		console.log("originalX, ", originalX);
+		let predOccupiedCells = this.calculateOccupiedCellsGiven(predX, this.y);
+		const originalOccupiedCells = this.occupiedCells;
+		this.occupiedCells = predOccupiedCells;
+		const collided = this.isCollided();
+		
+		this.occupiedCells = originalOccupiedCells;
+		this.x = originalX;
+		//if(this.isCollided()) this.x = this.x-this.dx;
 
-		//if(this.isCollided()) this.x = this.x - this.dx;
+		
+
 		
 
 		if(this.isCollided()){
 
-			this.grid.remove(this);
-			super.calculateOccupiedCells();
-			this.grid.add(this);
+		//	this.grid.remove(this);
+		//	super.calculateOccupiedCells();
+		//	this.grid.add(this);
 			this.currPos = "lw";
 			this.update();
 			return;
@@ -555,13 +632,13 @@ class Movable extends Obstacle {
 
 
 		this.grid.remove(this);
+		this.x = predX;
 
-
-
+		/*
 		this.dy = 0;
 		this.dx = -1 * this.walkingSpeed;
 		this.x += this.dx;
-
+		*/
 		// boundary left
 		if(this.x < 0) {
 			this.x = 0;
@@ -581,29 +658,38 @@ class Movable extends Obstacle {
 	moveRight(){
 
 		this.direction = HORIZONTAL_R;
-
-
+		
+		this.dy = 0;
+		const originalX = this.x;
+		let predX = this.x + this.walkingSpeed;
+		this.x = predX;
+		console.log("predX, ", predX);
+		console.log("originalX, ", originalX);
+		let predOccupiedCells = this.calculateOccupiedCellsGiven(predX, this.y);
+		const originalOccupiedCells = this.occupiedCells;
+		this.occupiedCells = predOccupiedCells;
+		const collided = this.isCollided();
+		
+		this.occupiedCells = originalOccupiedCells;
+		this.x = originalX;
 		//if(this.isCollided()) this.x = this.x-this.dx;
 
-		if(this.isCollided()){
+		if(collided){
 
-			this.grid.remove(this);
-			super.calculateOccupiedCells();
-			this.grid.add(this);
+			//this.grid.remove(this);
+			//super.calculateOccupiedCells();
+			//this.grid.add(this);
 			this.currPos = "rw";
 			this.update();
 			return;
 		}	
 		this.grid.remove(this);
-
+		this.x = predX;
+		/*
 		this.dy = 0;
 		this.dx = 1 * this.walkingSpeed;
 		this.x += this.dx;
-		/*
-		if(collision){
-			this.x -= thix.dx;
-		}*/
-		
+		*/
 		// boundery right
 		if(this.x + super.getWidth() > cnvs_width){
 		
@@ -627,7 +713,7 @@ class Movable extends Obstacle {
 
 		let nearByObst = this.findNearByObstacles();
 
-		console.log(nearByObst);
+		//console.log(nearByObst);
 
 		let toleranceY = 5;
 		let toleranceX = 0;
@@ -635,6 +721,8 @@ class Movable extends Obstacle {
 
 		
 		for(let obst of nearByObst){
+
+			if (!(obst instanceof Obstacle)) continue;
 
 			toleranceY = 5;
 
@@ -690,13 +778,23 @@ class Movable extends Obstacle {
 				break;
 			}
 			else if(
+				/*
 				this.direction == VERTICAL_U &&
 				(this.x >= obst.x-toleranceX && this.x <= obst.x +  obst.getWidth()+toleranceX) &&
 				
 				(this.x + this.getWidth() >= obst.x-toleranceX && this.x + this.getWidth() <= obst.x+obst.getWidth()+toleranceX) &&
 				(this.y + this.getHeight() <= obst.y + obst.getHeight() + toleranceY) &&
 				(this.y + this.getHeight() >= obst.y + obst.getHeight() - toleranceY) 
+				*/
 
+
+				this.direction == VERTICAL_U &&
+				(this.x  + (this.getWidth() / 2) >= obst.x-toleranceX && this.x + (this.getWidth()/2) <= obst.x +  obst.getWidth()+toleranceX) &&
+				
+				(this.y + this.getHeight() <= obst.y + obst.getHeight() + toleranceY) &&
+				(this.y + this.getHeight() >= obst.y + obst.getHeight() - toleranceY) 
+
+			
 			){
 
 				let idxThis = obs.indexOf(this);
@@ -712,11 +810,23 @@ class Movable extends Obstacle {
 			}
 
 			else if(
+				/*
 				this.direction == VERTICAL_D &&
 				(this.x > obst.x-toleranceX && this.x <= obst.x +  obst.getWidth()+toleranceX) &&
 				(this.x + this.getWidth() >= obst.x-toleranceX && this.x + this.getWidth() <= obst.x+obst.getWidth()+toleranceX) &&
 				(this.y + this.getHeight() >= obst.y + obst.getHeight() - toleranceY) &&
 				(this.y + this.getHeight() <= obst.y + obst.getHeight())
+
+	
+				*/
+
+
+				this.direction == VERTICAL_D &&
+				(this.x + (this.getWidth() / 2) > obst.x-toleranceX && this.x + (this.getWidth() /2 ) <= obst.x +  obst.getWidth()+toleranceX) &&
+				(this.y + this.getHeight() >= obst.y + obst.getHeight() - toleranceY) &&
+				(this.y + this.getHeight() <= obst.y + obst.getHeight())
+
+
 
 			){
 				collided = true;
@@ -728,7 +838,7 @@ class Movable extends Obstacle {
 			toleranceY = 0;
 
 		}
-
+		console.log(collided);
 
 		return collided;
 	}
@@ -767,6 +877,17 @@ class Stone extends Obstacle{
 
 }
 
+
+
+class House extends Obstacle{
+	constructor(cnvs_ctx, x, y){
+		super(cnvs_ctx, x, y, assets.structure.house);
+		this.cnvs_ctx = cnvs_ctx;
+		this.x = x;
+		this.y = y;
+	}
+
+}
 
 
 
@@ -849,7 +970,7 @@ class Cow extends Animal{
 
 
 class Box{
-	constructor(cnvs_ctx, x, y, w, h, color="green", fill=true, stroke="green"){
+	constructor({cnvs_ctx, x, y, w, h, color="green", fill=true, stroke="green", img = null}){
 		this.cnvs_ctx = cnvs_ctx;
 		this.x = x;
 		this.y = y;
@@ -863,6 +984,7 @@ class Box{
 		// change rate
 		this.dx = 1;
 		this.dy = 0;//0.1;
+		this.img = img
 
 	}
 	
@@ -884,8 +1006,30 @@ class Box{
 
 	draw(){
 		if(this.f){
+
 			this.cnvs_ctx.fillStyle = this.c;
 			this.cnvs_ctx.fillRect(this.x, this.y, this.w, this.h);
+			if(this.img){
+			
+				if(this.img){
+					if(this.img.complete){
+
+						let pattern = this.cnvs_ctx.createPattern(this.img, "repeat");
+						this.cnvs_ctx.fillStyle = pattern;
+						this.cnvs_ctx.fillRect(this.x, this.y, this.w, this.h);
+					}else{
+						this.img.onload = () => {
+							
+							let pattern = this.cnvs_ctx.createPattern(this.img, "repeat");
+							this.cnvs_ctx.fillStyle = pattern;
+							this.cnvs_ctx.fillRect(this.x, this.y, this.w, this.h);
+						}
+
+					}
+				}
+			}
+			
+			
 		}else{
 			this.cnvs_ctx.strokeStyle = this.s;
 			this.cnvs_ctx.lineWidth = this.lw;
@@ -920,7 +1064,7 @@ class Box{
 
 
 
-const images = [assets.tree, ...Object.values(assets.villager), ...Object.values(assets.cow), ...Object.values(assets.resource)]
+const images = [assets.tree, ...Object.values(assets.villager), ...Object.values(assets.cow), ...Object.values(assets.resource), ...Object.values(assets.terrain), ...Object.values(assets.structure)]
 
 
 loadGame(images, () => {
@@ -954,9 +1098,19 @@ let resources = [
 
 ]
 
+
+
+let structures = [
+	new House(ctx, 600, 10)
+	,new House(ctx, 660, 10)
+];
+
+
 	let villager = new Villager(ctx, 10, 10);
 //	let trees = [new Tree(ctx, 140,10)];
-	obs = [...trees, villager, ...animals, ...resources];
+	obs = [...trees, villager, ...animals, ...resources, ...structures];
+
+
 
 
 
@@ -974,9 +1128,9 @@ function init() {
 
 
 
-let box = new Box(ctx, 0, 100, 100, 100, "red");
+let box = new Box({cnvs_ctx:ctx, x:0, y:100, w:100, h:100, stroke:"red"});
 
-let ground = new Box(ctx, 0, 0, cnvs_width, cnvs_height, "lightgreen");
+let ground = new Box({cnvs_ctx:ctx, x:0, y:0, w:cnvs_width, h:cnvs_height, color:"lightgreen", img:assets.terrain.greengrass2});
 
 
 const gridBorders = new Array(NUM_CELLS_X*NUM_CELLS_Y);
@@ -984,7 +1138,7 @@ let counter = 0;
 
 for(let y = 0; y < NUM_CELLS_Y;y++){
 	for(let x =0; x<NUM_CELLS_X;x++){
-		gridBorders[counter] = new Box(ctx, x*CELL_SIZE,y*CELL_SIZE,CELL_SIZE, CELL_SIZE,"",false,"black");
+		gridBorders[counter] = new Box({cnvs_ctx:ctx, x:x*CELL_SIZE,y:y*CELL_SIZE,w:CELL_SIZE, h:CELL_SIZE,color:"",fill:false,stroke:"black"});
 		counter++;
 	}
 }
