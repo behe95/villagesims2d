@@ -61,6 +61,14 @@ const assets = {
 	,structure: {
 		house: new Image()
 	}
+	,
+	inventory: {
+		gold: new Image()
+		,stone: new Image()
+		,food: new Image()
+		,wood: new Image()
+
+	}
 
 }
 
@@ -100,6 +108,13 @@ assets.terrain.greengrass2.src = "./res/terrain/greengrass2.png";
 assets.terrain.drygrass1.src = "./res/terrain/drygrass1.png";
 
 assets.structure.house.src = "./res/structure/house.png";
+
+
+// inventory items
+assets.inventory.gold.src = "./res/inventory/gold.png";
+assets.inventory.stone.src = "./res/inventory/stone.png";
+assets.inventory.food.src = "./res/inventory/food.png";
+assets.inventory.wood.src = "./res/inventory/wood.png";
 
 
 // constant variables to identify the axis
@@ -302,6 +317,11 @@ class Objekt{
 		}
 
 
+	}
+
+
+	getImg(){
+		return this.img;
 	}
 
 
@@ -853,6 +873,45 @@ class Movable extends Obstacle {
 }
 
 
+class InventoryItem extends Objekt{
+	constructor(cnvs_ctx, x, y, sprite){
+		super(cnvs_ctx, x, y, sprite);
+		this.cnvs_ctx = cnvs_ctx;
+		this.x = x;
+		this.y = y;
+
+
+		this.resourceCount = 0;
+
+
+//		this.box = new Box({cnvs_ctx:cnvs_ctx, x:x, y:y, w:0, h:0,color:"white",fill:false,stroke:"black"});
+	}
+
+	draw(){
+/*
+			this.box.setPosition(this.x, this.y);
+			this.box.setStrokeSize(3);
+			this.box.setDimension(this.img.naturalWidth, this.img.naturalHeight);
+			this.box.draw();
+
+*/
+		/*
+			// show coordinates
+			this.cnvs_ctx.fillStyle = "blue";
+			this.cnvs_ctx.font = "16px serif"
+			this.cnvs_ctx.fillText(`(${this.x},${this.y})`, this.x-40,this.y);
+			
+			this.cnvs_ctx.fillText(`(${this.x+this.getWidth()},${this.y})`, this.x+this.getWidth(),this.y);
+			
+			this.cnvs_ctx.fillText(`(${this.x},${this.y+this.getHeight()})`, this.x-40,this.y+this.getHeight()+20);
+			
+			this.cnvs_ctx.fillText(`(${this.x+this.getWidth()},${this.y+this.getHeight()})`, this.x+this.getWidth(),this.y+this.getHeight()+20);
+
+*/
+
+	}
+
+}
 
 class Gold extends Obstacle{
 	constructor(cnvs_ctx, x, y){
@@ -860,6 +919,9 @@ class Gold extends Obstacle{
 		this.cnvs_ctx = cnvs_ctx;
 		this.x = x;
 		this.y = y;
+
+
+		this.resourceCount = 70
 	}
 
 
@@ -872,6 +934,10 @@ class Stone extends Obstacle{
 		this.cnvs_ctx = cnvs_ctx;
 		this.x = x;
 		this.y = y;
+	
+
+		this.resourceCount = 70;
+
 	}
 
 
@@ -901,6 +967,7 @@ class Tree extends Obstacle{
 		//this.src = "./res/tree/tree.png";
 		//super.setImg(this.src);
 
+		this.resourceCount = 80;
 	}
 
 
@@ -932,6 +999,7 @@ class Animal extends Movable{
 
 	constructor(cnvs_ctx, x, y, sprite){
 		super(cnvs_ctx, x, y, sprite);
+
 		
 
 	}
@@ -946,6 +1014,9 @@ class Cow extends Animal{
 
 		this.lastUpdate = 0;
 		this.updateInterval = 300 + Math.random() * 500;
+	
+
+		this.resourceCount = 50;
 	}
 
 
@@ -1064,7 +1135,7 @@ class Box{
 
 
 
-const images = [assets.tree, ...Object.values(assets.villager), ...Object.values(assets.cow), ...Object.values(assets.resource), ...Object.values(assets.terrain), ...Object.values(assets.structure)]
+const images = [assets.tree, ...Object.values(assets.villager), ...Object.values(assets.cow), ...Object.values(assets.resource), ...Object.values(assets.terrain), ...Object.values(assets.structure), ...Object.values(assets.inventory)]
 
 
 loadGame(images, () => {
@@ -1104,6 +1175,14 @@ let structures = [
 	new House(ctx, 600, 10)
 	,new House(ctx, 660, 10)
 ];
+
+
+let inventories = [
+	new InventoryItem(ctx, 0, 0, assets.inventory.wood)
+	,new InventoryItem(ctx, 0, 0, assets.inventory.food)
+	,new InventoryItem(ctx, 0, 0, assets.inventory.gold)
+	,new InventoryItem(ctx, 0, 0, assets.inventory.stone)
+]
 
 
 	let villager = new Villager(ctx, 10, 10);
@@ -1166,7 +1245,10 @@ function draw(time){
 	ground.draw();
 
 
-		obs.forEach(o => o.draw());
+	obs.forEach(o => o.draw());
+
+
+
 	if(isDevMode){
 		gridBorders.forEach(gb => gb.draw());
 	}
@@ -1202,6 +1284,35 @@ function draw(time){
 
 	})
 
+
+	// draw inventory
+	inventories.forEach((i, idx) => {
+		const slotSize = 50;
+		const spacing = 5;
+		const leftX = 0;
+		const bottomY = cnvs_height - slotSize - 0;
+
+		const x = leftX + idx * (slotSize + spacing);
+		const y = bottomY;
+
+		ctx.fillStyle = "rgba(200, 200, 200, 0.8)";
+		ctx.fillRect(x, y, slotSize, slotSize);
+	
+		ctx.strokeStyle = "black";
+		ctx.lineWidth = 2;
+
+		ctx.strokeRect(x, y, slotSize, slotSize);
+		ctx.drawImage(i.getImg(), x + 5, y + 5, slotSize-10, slotSize-10);
+		
+		ctx.fillStyle = "white";
+		ctx.fillRect(x, y - spacing-10, slotSize, 2*spacing+10)
+
+		ctx.fillStyle = "black";
+		ctx.font = "bold 16px serif";
+		ctx.textAlign = "center";
+		ctx.textBaseline = "middle";
+		ctx.fillText(i.resourceCount, x + slotSize / 2, y-spacing-0);
+	});
 
 	window.requestAnimationFrame(draw);
 }
