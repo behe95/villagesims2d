@@ -1,7 +1,7 @@
 
 
 
-const isDevMode = true;
+const isDevMode = false;
 
 
 const loadGame = (assets, cb) => {
@@ -145,7 +145,7 @@ const NUM_CELLS_X = cnvs_width / CELL_SIZE; //20;
 const NUM_CELLS_Y = cnvs_height / CELL_SIZE;// 10
 
 
-
+let isShowMsg = false;
 
 
 /**
@@ -744,6 +744,8 @@ class Movable extends Obstacle {
 
 			if (!(obst instanceof Obstacle)) continue;
 
+		
+
 			toleranceY = 5;
 
 			if (this.getWidth() > obst.getWidth()){
@@ -1149,23 +1151,34 @@ let trees = [
 	,new Tree(ctx, 256, 24)
 	,new Tree(ctx, 256, 124)
 	,new Tree(ctx, 156, 124)
+	,new Tree(ctx, 656, 124)
+	,new Tree(ctx, 756, 124)
+	,new Tree(ctx, 556, 124)
+	,new Tree(ctx, 456, 270)
+	,new Tree(ctx, 556, 270)
+	,new Tree(ctx, 516, 270)
+	,new Tree(ctx, 576, 124)
+	,new Tree(ctx, 676, 10)
+	,new Tree(ctx, 756, 5)
 
 
 ]	
 
 let animals = [
 	new Cow(ctx, 300, 300)
-	,new Cow(ctx, 500, 250)
-	,new Cow(ctx, 500, 300)
-	,new Cow(ctx, 600, 300)
-	,new Cow(ctx, 700, 300)
+	,new Cow(ctx, 300, 250)
+	,new Cow(ctx, 300, 100)
+	,new Cow(ctx, 500, 140)
+	,new Cow(ctx, 400, 140)
 ]
 
 
 let resources = [
 	new Gold(ctx, 400, 100)
 	,new Gold(ctx, 700, 240)
-	,new Stone(ctx, 700, 100)
+	,new Stone(ctx, 600, 100)
+	,new Stone(ctx, 700, 200)
+	,new Stone(ctx, 750, 300)
 
 ]
 
@@ -1194,6 +1207,21 @@ let inventories = [
 
 
 function init() {
+
+
+
+
+		// SORT obstacles
+		//
+		obs.sort((a,b) => {
+			
+			const [aGridPosX, aGridPosY] = a.grid.convertToGridCOORD(a.x, a.y + a.getHeight());
+			const [bGridPosX, bGridPosY] = b.grid.convertToGridCOORD(b.x, b.y + b.getHeight());
+			
+			return (a.getHeight() + a.y) - (b.getHeight()+b.y);
+
+			
+		})
 	window.requestAnimationFrame(draw);
 
 }
@@ -1221,7 +1249,6 @@ for(let y = 0; y < NUM_CELLS_Y;y++){
 		counter++;
 	}
 }
-
 
 
 
@@ -1313,6 +1340,24 @@ function draw(time){
 		ctx.textBaseline = "middle";
 		ctx.fillText(i.resourceCount, x + slotSize / 2, y-spacing-0);
 	});
+
+	
+	if(isShowMsg){
+		// show message hint
+		let inventoryWidth = inventories.length * (50+5);
+		let remainingWidth = cnvs_width - inventoryWidth - 20;
+		ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
+		ctx.fillRect(inventoryWidth, cnvs_height-50, remainingWidth, 50);
+
+		ctx.fillStyle = "black";
+		ctx.font = "bold 16px serif";
+		ctx.textAlign = "center";
+
+		let msg = "";
+
+		ctx.fillText(msg, cnvs_width - remainingWidth/2, cnvs_height-16);
+	}
+
 
 	window.requestAnimationFrame(draw);
 }
