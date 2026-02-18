@@ -244,6 +244,9 @@ const ARROW_RT_KY = 39;
 
 const C_KY = 67;
 
+const ENTER_KY = 13;
+const SPACE_KY = 32;
+const I_KY = 73;
 
 let cur_btn_ky = -1;
 
@@ -252,7 +255,7 @@ let cur_btn_ky = -1;
 window.addEventListener("keydown", (e) => {
 		e.preventDefault();
 		cur_btn_ky = e.keyCode;
-
+		console.log("Button Pressend, ", cur_btn_ky);
 
 });
 
@@ -287,24 +290,25 @@ class Objekt{
 		this.nextObstacle = null;
 		
 
-		
-		if(this.img.complete){
+		if(this.img){	
+			if(this.img.complete){
 
 
-			// occupied cells in grid
-			this.occupiedCells = []
-			this.calculateOccupiedCells();
-			this.grid.add(this);
-		}else{
-			this.img.onload = () => {
-				
 				// occupied cells in grid
 				this.occupiedCells = []
 				this.calculateOccupiedCells();
-
 				this.grid.add(this);
-			}
+			}else{
+				this.img.onload = () => {
+					
+					// occupied cells in grid
+					this.occupiedCells = []
+					this.calculateOccupiedCells();
 
+					this.grid.add(this);
+				}
+
+			}
 		}
 
 		//this.grid.add(this);
@@ -472,6 +476,8 @@ class Movable extends Obstacle {
 		this.walkingSpeed = 5;
 
 		this.direction = NO_DIRECTION;
+
+		this.collidedWith = new Set()
 
 
 	}
@@ -739,6 +745,8 @@ class Movable extends Obstacle {
 		let toleranceX = 0;
 		const TOLERANCE_AMP = 5;
 
+
+		this.collidedWith.clear();
 		
 		for(let obst of nearByObst){
 
@@ -785,6 +793,8 @@ class Movable extends Obstacle {
 				(this.y + this.getHeight() >= obst.y+obst.getHeight()-toleranceY) &&
 				(this.y + this.getHeight() <= obst.y+obst.getHeight()+toleranceY)
 			) {
+
+				this.collidedWith.add(obst);
 				collided = true;
 				break;
 			} 
@@ -796,6 +806,8 @@ class Movable extends Obstacle {
 				(this.y + this.getHeight() <= obst.y+obst.getHeight() + toleranceY)
 			)
 			{
+
+				this.collidedWith.add(obst);
 				collided = true;
 				break;
 			}
@@ -826,7 +838,8 @@ class Movable extends Obstacle {
 					collided = false;
 					break;
 				}
-
+				
+				this.collidedWith.add(obst);
 				collided = true;
 				break;
 			}
@@ -851,16 +864,20 @@ class Movable extends Obstacle {
 
 
 			){
+
+				this.collidedWith.add(obst);
 				collided = true;
 				break;
 			}
-
+			
 
 			toleranceX = 0;
 			toleranceY = 0;
 
 		}
 		console.log(collided);
+
+		
 
 		return collided;
 	}
@@ -874,6 +891,87 @@ class Movable extends Obstacle {
 
 }
 
+const INVENTORY_ITEM_TYPES = {
+	WOOD: "WOOD"
+	,FOOD: "FOOD"
+	,GOLD: "GOLD"
+	,STONE: "STONE"
+}
+
+class Inventory extends Objekt{
+	constructor(cnvs_ctx, x, y, sprite){
+		super(cnvs_ctx, x, y, sprite);
+		this.cnvs_ctx = cnvs_ctx;
+		this.x = x;
+		this.y = y;
+
+		this.inventoryItems = []
+		
+		this.configInventory();
+
+//		this.box = new Box({cnvs_ctx:cnvs_ctx, x:x, y:y, w:0, h:0,color:"white",fill:false,stroke:"black"});
+	}
+
+
+	configInventory(){
+
+
+		const inv_wood = new InventoryItem(ctx, 0, 0, assets.inventory.wood);
+		inv_wood.setItemType(INVENTORY_ITEM_TYPES.WOOD);
+		this.inventoryItems.push(inv_wood);
+
+		const inv_food = new InventoryItem(ctx, 0, 0, assets.inventory.food);
+		inv_food.setItemType(INVENTORY_ITEM_TYPES.FOOD);
+		this.inventoryItems.push(inv_food);
+			
+		const inv_gold = new InventoryItem(ctx, 0, 0, assets.inventory.gold);
+		inv_gold.setItemType(INVENTORY_ITEM_TYPES.GOLD);
+		this.inventoryItems.push(inv_gold);
+			
+		const inv_stone = new InventoryItem(ctx, 0, 0, assets.inventory.stone)
+		inv_stone.setItemType(INVENTORY_ITEM_TYPES.STONE);
+		this.inventoryItems.push(inv_stone);
+
+	}
+
+
+	draw(){
+
+
+		// draw inventory
+		this.inventoryItems.forEach((i, idx) => {
+			const slotSize = 50;
+			const spacing = 5;
+			const leftX = 0;
+			const bottomY = cnvs_height - slotSize - 0;
+
+			const x = leftX + idx * (slotSize + spacing);
+			const y = bottomY;
+
+			this.cnvs_ctx.fillStyle = "rgba(200, 200, 200, 0.8)";
+			this.cnvs_ctx.fillRect(x, y, slotSize, slotSize);
+		
+			this.cnvs_ctx.strokeStyle = "black";
+			this.cnvs_ctx.lineWidth = 2;
+
+			this.cnvs_ctx.strokeRect(x, y, slotSize, slotSize);
+			this.cnvs_ctx.drawImage(i.getImg(), x + 5, y + 5, slotSize-10, slotSize-10);
+			
+			this.cnvs_ctx.fillStyle = "white";
+			this.cnvs_ctx.fillRect(x, y - spacing-10, slotSize, 2*spacing+10)
+
+			this.cnvs_ctx.fillStyle = "black";
+			this.cnvs_ctx.font = "bold 16px serif";
+			this.cnvs_ctx.textAlign = "center";
+			this.cnvs_ctx.textBaseline = "middle";
+			this.cnvs_ctx.fillText(i.resourceCount, x + slotSize / 2, y-spacing-0);
+		});
+
+	}
+
+
+
+}
 
 class InventoryItem extends Objekt{
 	constructor(cnvs_ctx, x, y, sprite){
@@ -882,11 +980,20 @@ class InventoryItem extends Objekt{
 		this.x = x;
 		this.y = y;
 
+		this.itemType = ""
 
 		this.resourceCount = 0;
 
 
 //		this.box = new Box({cnvs_ctx:cnvs_ctx, x:x, y:y, w:0, h:0,color:"white",fill:false,stroke:"black"});
+	}
+
+	setItemType(t){
+		this.itemType = t;
+	}
+
+	getItemType(){
+		return this.itemType;
 	}
 
 	draw(){
@@ -927,6 +1034,21 @@ class Gold extends Obstacle{
 	}
 
 
+	// workaround for interface
+	// TODO	find better solution
+	interactable(){
+		
+	}
+
+	showInteractableOptions(){
+		return `1. Collect gold
+			2. Cancel
+			`
+	}
+
+	interactingInput(input){}
+
+
 }
 
 class Stone extends Obstacle{
@@ -943,6 +1065,20 @@ class Stone extends Obstacle{
 	}
 
 
+
+	// workaround for interface
+	// TODO	find better solution
+	interactable(){
+		
+	}
+
+	showInteractableOptions(){
+		return `1. Collect stone
+			2. Cancel
+			`
+	}
+
+	interactingInput(input){}
 }
 
 
@@ -973,12 +1109,29 @@ class Tree extends Obstacle{
 	}
 
 
+
+
+	// workaround for interface
+	// TODO	find better solution
+	interactable(){
+		
+	}
+
+	showInteractableOptions(){
+		return `1. Collect wood
+			2. Cancel
+			`
+	}
+
+	interactingInput(input){}
+
 }
 
 class Villager extends Movable{
 	constructor(cnvs_ctx, x, y) {
 		super(cnvs_ctx, x, y, assets.villager.dw2);
-
+		
+		this.inventory = new Inventory(this.cnvs_ctx, 0, 0, null);
 		//this.src = "./res/villager/dw2.png";
 		//super.setImg(this.src);
 
@@ -987,6 +1140,13 @@ class Villager extends Movable{
 	buildSpritePath(direction, n){
 		return `./res/villager/${direction}${n}.png`
 	
+	}
+
+
+	draw(){
+		super.draw();
+		this.inventory.draw();
+
 	}
 
 
@@ -1189,14 +1349,25 @@ let structures = [
 	,new House(ctx, 660, 10)
 ];
 
+/*
+let inventories = [];
 
-let inventories = [
-	new InventoryItem(ctx, 0, 0, assets.inventory.wood)
-	,new InventoryItem(ctx, 0, 0, assets.inventory.food)
-	,new InventoryItem(ctx, 0, 0, assets.inventory.gold)
-	,new InventoryItem(ctx, 0, 0, assets.inventory.stone)
-]
+const inv_wood = new InventoryItem(ctx, 0, 0, assets.inventory.wood);
+inv_wood.setItemType(INVENTORY_ITEM_TYPES.WOOD);
+inventories.push(inv_wood);
 
+const inv_food = new InventoryItem(ctx, 0, 0, assets.inventory.food);
+inv_food.setItemType(INVENTORY_ITEM_TYPES.FOOD);
+inventories.push(inv_food);
+	
+const inv_gold = new InventoryItem(ctx, 0, 0, assets.inventory.gold);
+inv_gold.setItemType(INVENTORY_ITEM_TYPES.GOLD);
+inventories.push(inv_gold);
+	
+const inv_stone = new InventoryItem(ctx, 0, 0, assets.inventory.stone)
+inv_stone.setItemType(INVENTORY_ITEM_TYPES.STONE);
+inventories.push(inv_stone);
+*/	
 
 	let villager = new Villager(ctx, 10, 10);
 //	let trees = [new Tree(ctx, 140,10)];
@@ -1261,6 +1432,9 @@ let lastUpdate = 0;
 
 let lastUpdateAnimals = 0
 
+
+let isPressed_I_KY = false;
+
 function draw(time){
 	// clear screen
 	ctx.clearRect(0, 0, cnvs_width,cnvs_height);
@@ -1298,6 +1472,8 @@ function draw(time){
 
 			console.log(grid);
 
+		} else if(cur_btn_ky == I_KY){
+			isPressed_I_KY = true;
 		}
 		lastUpdate = time;
 
@@ -1311,7 +1487,7 @@ function draw(time){
 
 	})
 
-
+/*
 	// draw inventory
 	inventories.forEach((i, idx) => {
 		const slotSize = 50;
@@ -1340,23 +1516,65 @@ function draw(time){
 		ctx.textBaseline = "middle";
 		ctx.fillText(i.resourceCount, x + slotSize / 2, y-spacing-0);
 	});
+*/	
+	if(isPressed_I_KY){
+		isShowMsg = true;
+		let oc = villager.occupiedCells;
+		
+		let nearByObst = villager.findNearByObstacles();
 
+		console.log("Is collided", villager.collidedWith);
 	
-	if(isShowMsg){
-		// show message hint
-		let inventoryWidth = inventories.length * (50+5);
-		let remainingWidth = cnvs_width - inventoryWidth - 20;
-		ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
-		ctx.fillRect(inventoryWidth, cnvs_height-50, remainingWidth, 50);
+		const collidedWith = new Set(
+			[...villager.collidedWith].sort((a,b) =>{
+				
+				if(villager.currPos == "uw") return b.y + b.getHeight() -  a.y - a.getHeight()
+				else if (villager.currPos == "dw") return a.y + a.getHeight() - b.y - b.getHeight()
+				else if (villager.currPos == "rw") return a.x + a.getWidth() - b.x - b.getWidth()
+				
 
-		ctx.fillStyle = "black";
-		ctx.font = "bold 16px serif";
-		ctx.textAlign = "center";
+				return 1
 
-		let msg = "";
+			})
+		);
 
-		ctx.fillText(msg, cnvs_width - remainingWidth/2, cnvs_height-16);
+		// don't show interactable options if not near obstacles
+		if(collidedWith.size === 0) {
+			isPressed_I_KY = false;
+			isShowMsg = false;
+
+		}
+
+
+		let interactableObst = null;
+
+		collidedWith.forEach(o => {
+
+			if(typeof o.interactable === "function"){
+				if(isShowMsg){
+					// show message hint
+					let inventoryWidth = villager.inventory.inventoryItems.length * (50+5);
+					let remainingWidth = cnvs_width - inventoryWidth - 20;
+					ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
+					ctx.fillRect(inventoryWidth, cnvs_height-50, remainingWidth, 50);
+
+					ctx.fillStyle = "black";
+					ctx.font = "bold 16px serif";
+					ctx.textAlign = "center";
+
+					let msg = "";
+
+					ctx.fillText(o.showInteractableOptions(), cnvs_width - remainingWidth/2, cnvs_height-16);
+				}
+
+			}
+
+		});
+
+		
+		//isPressed_I_KY = false;
 	}
+	
 
 
 	window.requestAnimationFrame(draw);
