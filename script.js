@@ -2,6 +2,7 @@
 
 
 const isDevMode = false;
+let isShowInteractableItem = false;
 
 
 const loadGame = (assets, cb) => {
@@ -247,6 +248,7 @@ const C_KY = 67;
 const ENTER_KY = 13;
 const SPACE_KY = 32;
 const I_KY = 73;
+const B_KY = 66;
 
 let cur_btn_ky = -1;
 
@@ -320,6 +322,10 @@ class Objekt{
 
 		}
 
+		
+
+
+
 
 	}
 
@@ -374,7 +380,9 @@ class Objekt{
 			this.cnvs_ctx.fillText(`(${this.x+this.getWidth()},${this.y+this.getHeight()})`, this.x+this.getWidth(),this.y+this.getHeight()+20);
 			
 
-		}		
+		}
+
+		
 
 	}
 
@@ -1031,6 +1039,20 @@ class Gold extends Obstacle{
 
 
 		this.resourceCount = 70
+
+
+		this.input = -1;
+		this.boxInteractableItem = new Box({cnvs_ctx:cnvs_ctx, x:x, y:y, w:0, h:0,color:"",fill:false,stroke:"blue"});
+		
+
+		this.collectionDuration = 3000;
+		this.progressBarWidth = 100;
+		this.progressBar = new Box({cnvs_ctx:this.cnvs_ctx, x:this.x, y:this.y, w:this.progressBarWidth, h:10, color:"red"});
+
+	
+		this.isBeingCollected = false;
+
+		this.collectionStartTime = 0;
 	}
 
 
@@ -1046,7 +1068,67 @@ class Gold extends Obstacle{
 			`
 	}
 
-	interactingInput(input){}
+
+	interactingInput(input, inventory, cb){
+		console.log("INTERACTING, ", input)
+
+		if(this.isBeingCollected) return;
+		this.input = input;
+		if(input === "1"){
+			if(!this.isBeingCollected) this.isBeingCollected = true;
+
+			this.collectionStartTime = Date.now();
+			
+			const inventoryItem = inventory.inventoryItems.find(i => i.getItemType() === INVENTORY_ITEM_TYPES.GOLD);
+
+			setTimeout(() => {
+
+			inventoryItem.resourceCount += this.resourceCount;
+			const idx = obs.indexOf(this);
+			if(idx >= 0){
+				obs.splice(idx, 1);
+				this.grid.remove(this);
+				
+				cb(true)
+			}
+			},this.collectionDuration);
+
+		} else if(input === "2"){
+			cb(true);
+		}else {
+			cb(true);
+		}
+
+		this.input = -1;
+
+	}
+
+	draw(){
+		super.draw();
+
+
+
+		if(isShowInteractableItem){
+			// show border box
+			this.boxInteractableItem.setPosition(this.x, this.y);
+			this.boxInteractableItem.setStrokeSize(1);
+			this.boxInteractableItem.setDimension(this.img.naturalWidth, this.img.naturalHeight);
+			this.boxInteractableItem.draw();
+			
+
+		}		
+
+
+		if(this.isBeingCollected){
+			
+
+			const elapsedTime = Date.now() - this.collectionStartTime;
+			const ratio = elapsedTime / this.collectionDuration;
+			const remaining = this.progressBarWidth - (this.progressBarWidth * ratio);
+			this.progressBar.w = remaining;
+			this.progressBar.draw();	
+		}
+	}
 
 
 }
@@ -1061,6 +1143,20 @@ class Stone extends Obstacle{
 	
 
 		this.resourceCount = 70;
+
+
+		this.input = -1;
+		this.boxInteractableItem = new Box({cnvs_ctx:cnvs_ctx, x:x, y:y, w:0, h:0,color:"",fill:false,stroke:"blue"});
+		
+
+		this.collectionDuration = 3000;
+		this.progressBarWidth = 100;
+		this.progressBar = new Box({cnvs_ctx:this.cnvs_ctx, x:this.x, y:this.y, w:this.progressBarWidth, h:10, color:"red"});
+
+	
+		this.isBeingCollected = false;
+
+		this.collectionStartTime = 0;
 
 	}
 
@@ -1078,7 +1174,69 @@ class Stone extends Obstacle{
 			`
 	}
 
-	interactingInput(input){}
+	interactingInput(input, inventory, cb){
+		console.log("INTERACTING, ", input)
+
+		if(this.isBeingCollected) return;
+		this.input = input;
+		if(input === "1"){
+			if(!this.isBeingCollected) this.isBeingCollected = true;
+
+			this.collectionStartTime = Date.now();
+			
+			const inventoryItem = inventory.inventoryItems.find(i => i.getItemType() === INVENTORY_ITEM_TYPES.STONE);
+
+			setTimeout(() => {
+
+			inventoryItem.resourceCount += this.resourceCount;
+			const idx = obs.indexOf(this);
+			if(idx >= 0){
+				obs.splice(idx, 1);
+				this.grid.remove(this);
+				
+				cb(true)
+			}
+			},this.collectionDuration);
+
+		} else if(input === "2"){
+			cb(true);
+		}else {
+			cb(true);
+		}
+
+		this.input = -1;
+
+	}
+
+
+
+
+	draw(){
+		super.draw();
+
+
+
+		if(isShowInteractableItem){
+			// show border box
+			this.boxInteractableItem.setPosition(this.x, this.y);
+			this.boxInteractableItem.setStrokeSize(1);
+			this.boxInteractableItem.setDimension(this.img.naturalWidth, this.img.naturalHeight);
+			this.boxInteractableItem.draw();
+			
+
+		}		
+
+		if(this.isBeingCollected){
+			
+
+			const elapsedTime = Date.now() - this.collectionStartTime;
+			const ratio = elapsedTime / this.collectionDuration;
+			const remaining = this.progressBarWidth - (this.progressBarWidth * ratio);
+			this.progressBar.w = remaining;
+			this.progressBar.draw();	
+		}
+
+	}
 }
 
 
@@ -1106,6 +1264,19 @@ class Tree extends Obstacle{
 		//super.setImg(this.src);
 
 		this.resourceCount = 80;
+
+		this.input = -1;
+		this.boxInteractableItem = new Box({cnvs_ctx:cnvs_ctx, x:x, y:y, w:0, h:0,color:"",fill:false,stroke:"blue"});
+		
+
+		this.collectionDuration = 3000;
+		this.progressBarWidth = 100;
+		this.progressBar = new Box({cnvs_ctx:this.cnvs_ctx, x:this.x, y:this.y, w:this.progressBarWidth, h:10, color:"red"});
+
+	
+		this.isBeingCollected = false;
+
+		this.collectionStartTime = 0;
 	}
 
 
@@ -1123,7 +1294,99 @@ class Tree extends Obstacle{
 			`
 	}
 
-	interactingInput(input){}
+	interactingInput(input, inventory, cb){
+		console.log("INTERACTING, ", input)
+
+		if(this.isBeingCollected) return;
+		this.input = input;
+		if(input === "1"){
+			if(!this.isBeingCollected) this.isBeingCollected = true;
+
+			this.collectionStartTime = Date.now();
+			
+			const inventoryItem = inventory.inventoryItems.find(i => i.getItemType() === INVENTORY_ITEM_TYPES.WOOD);
+
+			setTimeout(() => {
+
+			inventoryItem.resourceCount += this.resourceCount;
+			const idx = obs.indexOf(this);
+			if(idx >= 0){
+				obs.splice(idx, 1);
+				this.grid.remove(this);
+				
+				cb(true)
+			}
+			},this.collectionDuration);
+
+		} else if(input === "2"){
+			cb(true);
+		}else {
+			cb(true);
+		}
+
+		this.input = -1;
+
+	}
+
+
+
+
+	draw(){
+		super.draw();
+
+
+
+		if(isShowInteractableItem){
+			// show border box
+			this.boxInteractableItem.setPosition(this.x, this.y);
+			this.boxInteractableItem.setStrokeSize(1);
+			this.boxInteractableItem.setDimension(this.img.naturalWidth, this.img.naturalHeight);
+			this.boxInteractableItem.draw();
+			
+
+		}
+
+		if(this.isBeingCollected){
+			
+
+			const elapsedTime = Date.now() - this.collectionStartTime;
+			const ratio = elapsedTime / this.collectionDuration;
+			const remaining = this.progressBarWidth - (this.progressBarWidth * ratio);
+			this.progressBar.w = remaining;
+			this.progressBar.draw();	
+		}
+
+
+	}
+
+}
+
+class DialogBox extends Objekt{
+
+	constructor(cnvs_ctx, x, y, w, h) {
+		super(cnvs_ctx, x, y, null);
+		this.w = w;
+		this.h = h;
+		this.msg = "";
+	}
+
+	setMessage(msg){
+		this.msg = msg;
+	}
+
+	draw(){
+
+			this.cnvs_ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
+			this.cnvs_ctx.fillRect(this.x, this.y, this.w, this.h);
+
+			this.cnvs_ctx.fillStyle = "black";
+			this.cnvs_ctx.font = "bold 16px serif";
+			this.cnvs_ctx.textAlign = "center";
+
+
+			this.cnvs_ctx.fillText(this.msg, x, y);
+	}
+
 
 }
 
@@ -1134,6 +1397,11 @@ class Villager extends Movable{
 		this.inventory = new Inventory(this.cnvs_ctx, 0, 0, null);
 		//this.src = "./res/villager/dw2.png";
 		//super.setImg(this.src);
+		
+
+		this.interactingObjekt = null;
+		this.isInteracting = false;
+
 
 	}
 
@@ -1142,18 +1410,175 @@ class Villager extends Movable{
 	
 	}
 
+	startInteraction(){
+		
+			let nearByObst = this.findNearByObstacles();
+
+		
+			const collidedWith = new Set(
+				[...this.collidedWith].sort((a,b) =>{
+					
+					if(villager.currPos == "uw") return b.y + b.getHeight() -  a.y - a.getHeight()
+					else if (villager.currPos == "dw") return a.y + a.getHeight() - b.y - b.getHeight()
+					else if (villager.currPos == "rw") return a.x + a.getWidth() - b.x - b.getWidth()
+					
+
+					return 1
+
+				})
+			);
+
+			// don't show interactable options if not near obstacles
+			if(collidedWith.size === 0) {
+				this.interactingObjekt = null;
+				this.isInteracting = false;
+				return;
+			}
+
+
+
+			for(let o of collidedWith ){
+
+				if(typeof o.interactable === "function"){
+					this.interactingObjekt = o;
+					this.isInteracting = true;
+					break;
+				}
+
+			}
+
+		console.log("VVVVVVVV, ", this.interactingObjekt);
+
+	}
+
+
+	handleInteractionInput(input){
+		console.log("AAAAA, ", input);
+		if(this.interactingObjekt){
+			
+			/*const isCancel = !this.interactingObjekt.interactingInput(input, this.inventory);
+			if(isCancel){
+				this.interactingObjekt = null;
+				this.isInteracting = false;
+			}*/
+
+			
+			this.interactingObjekt.interactingInput(input, this.inventory, isCancel => {
+				if(isCancel){
+					this.interactingObjekt = null;
+					this.isInteracting = false;
+				}
+			});
+		}
+	}
+
 
 	draw(){
 		super.draw();
 		this.inventory.draw();
 
+		if(this.interactingObjekt && this.isInteracting){
+
+
+			// show message hint
+			let inventoryWidth = this.inventory.inventoryItems.length * (50+5);
+			let remainingWidth = cnvs_width - inventoryWidth - 20;
+			this.cnvs_ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
+			this.cnvs_ctx.fillRect(inventoryWidth, cnvs_height-50, remainingWidth, 50);
+
+			this.cnvs_ctx.fillStyle = "black";
+			this.cnvs_ctx.font = "bold 16px serif";
+			this.cnvs_ctx.textAlign = "center";
+
+
+			this.cnvs_ctx.fillText(this.interactingObjekt.showInteractableOptions(), cnvs_width - remainingWidth/2, cnvs_height-16);
+
+		}
+
+/*
+		if(isPressed_I_KY){
+			isShowMsg = true;
+			let oc = villager.occupiedCells;
+			
+			let nearByObst = villager.findNearByObstacles();
+
+			console.log("Is collided", villager.collidedWith);
+		
+			const collidedWith = new Set(
+				[...villager.collidedWith].sort((a,b) =>{
+					
+					if(villager.currPos == "uw") return b.y + b.getHeight() -  a.y - a.getHeight()
+					else if (villager.currPos == "dw") return a.y + a.getHeight() - b.y - b.getHeight()
+					else if (villager.currPos == "rw") return a.x + a.getWidth() - b.x - b.getWidth()
+					
+
+					return 1
+
+				})
+			);
+
+			// don't show interactable options if not near obstacles
+			if(collidedWith.size === 0) {
+				isPressed_I_KY = false;
+				isShowMsg = false;
+
+			}
+
+
+			let interactableObst = null;
+
+			collidedWith.forEach(o => {
+
+				if(typeof o.interactable === "function"){
+					if(isShowMsg){
+						// show message hint
+						let inventoryWidth = villager.inventory.inventoryItems.length * (50+5);
+						let remainingWidth = cnvs_width - inventoryWidth - 20;
+						ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
+						ctx.fillRect(inventoryWidth, cnvs_height-50, remainingWidth, 50);
+
+						ctx.fillStyle = "black";
+						ctx.font = "bold 16px serif";
+						ctx.textAlign = "center";
+
+						let msg = "";
+
+						ctx.fillText(o.showInteractableOptions(), cnvs_width - remainingWidth/2, cnvs_height-16);
+					}
+
+				}
+
+			});
+
+			
+			//isPressed_I_KY = false;
+		}*/
 	}
 
 
 
+	moveUp(){
+		if(this.isInteracting) return;
+		super.moveUp();
+	}
 
 
+	moveDown(){
+		if(this.isInteracting) return;
+		super.moveDown();
+	}
 
+
+	moveLeft(){
+		if(this.isInteracting) return;
+		super.moveLeft();
+	}
+
+	
+	moveRight(){
+		if(this.isInteracting) return;
+		super.moveRight();
+	}
 }
 
 
@@ -1174,6 +1599,8 @@ class Cow extends Animal{
 		super(cnvs_ctx, x, y, assets.cow.cowstand2);
 		this.currPos = "cowstand";
 
+
+let ground = new Box({cnvs_ctx:ctx, x:0, y:0, w:cnvs_width, h:cnvs_height, color:"lightgreen", img:assets.terrain.greengrass2});
 		this.lastUpdate = 0;
 		this.updateInterval = 300 + Math.random() * 500;
 	
@@ -1435,6 +1862,11 @@ let lastUpdateAnimals = 0
 
 let isPressed_I_KY = false;
 
+
+let lastToggle = 0;
+
+let last_btn_ky = -1;
+
 function draw(time){
 	// clear screen
 	ctx.clearRect(0, 0, cnvs_width,cnvs_height);
@@ -1473,11 +1905,17 @@ function draw(time){
 			console.log(grid);
 
 		} else if(cur_btn_ky == I_KY){
-			isPressed_I_KY = true;
+			villager.startInteraction();
+		} 
+		
+		else if(cur_btn_ky == B_KY && cur_btn_ky !== last_btn_ky){
+			isShowInteractableItem = !isShowInteractableItem;
 		}
+		last_btn_ky = cur_btn_ky;
 		lastUpdate = time;
 
 	}
+
 
 	animals.forEach(a => {
 		if(time - a.lastUpdate > a.updateInterval){
@@ -1485,7 +1923,15 @@ function draw(time){
 			a.lastUpdate = time;
 		}
 
-	})
+	});
+
+	console.log("XXXXXXXXXXX, ", villager.isInteracting);
+	// from num 1 to 9 || ascii code
+	if(villager.isInteracting && cur_btn_ky >= 49 && cur_btn_ky <= 57){
+		console.log("AJSLASJFLKASD")
+		villager.handleInteractionInput(String.fromCharCode(cur_btn_ky));
+
+	}
 
 /*
 	// draw inventory
@@ -1517,6 +1963,9 @@ function draw(time){
 		ctx.fillText(i.resourceCount, x + slotSize / 2, y-spacing-0);
 	});
 */	
+/*
+
+
 	if(isPressed_I_KY){
 		isShowMsg = true;
 		let oc = villager.occupiedCells;
@@ -1574,7 +2023,7 @@ function draw(time){
 		
 		//isPressed_I_KY = false;
 	}
-	
+*/	
 
 
 	window.requestAnimationFrame(draw);
